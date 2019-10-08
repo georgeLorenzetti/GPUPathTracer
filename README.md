@@ -10,6 +10,7 @@ Features to add:
  - Russian Roulette termination
  - BVH Acceleration structue/.obj loading
  - Texturing
+ - Change it so all paths are finished before moving to next frame
  - Probs extra stuff that I haven't though of yet
  
  Bugs (to remind myself what I need to fix)
