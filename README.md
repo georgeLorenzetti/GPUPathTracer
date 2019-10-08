@@ -8,7 +8,7 @@ Features to add:
  - Next Event Estimation
  - Cosine weighted importance sampling
  - Russian Roulette termination
- - BVH Acceleration structues/.obj loading
+ - BVH Acceleration structue/.obj loading
  - Texturing
  - Probs extra stuff that I haven't though of yet
  
