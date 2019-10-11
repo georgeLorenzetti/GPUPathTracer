@@ -11,7 +11,7 @@ PathTracer::PathTracer(int cores){
 	//set up kernel params
 	this->kernel_params.c_position = this->camera.GetPosition();
 	this->kernel_params.sm_cores = cores;
-	this->kernel_params.scene.init();
+	this->kernel_params.scene.Init();
 
 
 	//allocate memory for kernel parameters

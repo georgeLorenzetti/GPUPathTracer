@@ -9,15 +9,19 @@ __device__ int counter_extend = 0;
 __device__ int counter_shade = 0;
 __device__ int counter_connect = 0;
 __device__ int start_position = 0;
+__device__ int count_shadow_ray = 0;
 __device__ int connect_ray_index = 0;
 
+//debug variables
 __device__ int debug_count = 0;
 
 //draw variables
 surface<void, cudaSurfaceType2D> screen;
 
 
-//Device functions
+/**DEVICE FUNCTIONS**/
+
+//get random int
 __device__ unsigned int random_int(unsigned int& seed){
 	seed ^= seed << 13;
 	seed ^= seed << 17;
@@ -25,10 +29,12 @@ __device__ unsigned int random_int(unsigned int& seed){
 	return seed;
 }
 
+//get random float
 __device__ float random_float(unsigned int& seed){
 	return float(random_int(seed)) * 2.3283064365387e-10f;
 }
 
+//take uniform random sample from hemisphere
 __device__ vec3 sampleHemisphere(vec3 normal, unsigned int& seed){
 	float rand1 = random_float(seed);
 	float rand2 = random_float(seed);
@@ -58,6 +64,7 @@ __device__ vec3 sampleHemisphere(vec3 normal, unsigned int& seed){
 	return result;
 }
 
+//triangle intersection
 __device__ bool intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& intersection_point, float& t){
 	const float epsilon = 0.0000001;
 	vec3 edge1, edge2, h, s, q;
@@ -89,35 +96,77 @@ __device__ bool intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& int
 		return false;
 }
 
-//Debug Kernel
-__global__ void print_frame(vec4* framebf, Ray* ray_buffer_next, Scene scene, int frame){
-	//if(frame >=2 ){
-	//for (int j = 0; j < connect_ray_index; j++){
-	//	for (int i = 0; i < 4; i++){
-	//		float current_t;
-	//		vec3 intersection_point;
+__device__ vec3 nee_importance_sample(Scene* scene, Ray* ray, vec3 brdf, unsigned int& seed){
 
-	//		bool intersected_something = intersect_triangle(ray_buffer_next[j],
-	//			scene.t_vertices_gpu[scene.t_indices_gpu[i * 3]],
-	//			scene.t_vertices_gpu[scene.t_indices_gpu[i * 3 + 1]],
-	//			scene.t_vertices_gpu[scene.t_indices_gpu[i * 3 + 2]],
-	//			intersection_point,
-	//			current_t);
+	//get random point on a light
+	float rand = random_float(seed);
+	float split = 0;
 
-	//		if (i > 1 && intersected_something){
-	//			printf("Yes \n");
-	//		} else{
-	//			//printf("no \n");
-	//		}
+	int counter = 1;
+	vec3 random_point = vec3(0.0f);
+	while (counter <= scene->light_tri_count){
+		split += scene->light_areas_gpu[counter - 1];
+		float proportion = split / scene->total_light_area;
 
-	//	}
-	//}
-	//}
+		if (proportion > rand){
 
+			//get random point on the light
+			vec3 point = vec3(0.0f);
+			vec3 va = scene->t_vertices_gpu[scene->t_indices_gpu[scene->tri_count * 3 - (counter * 3)]];
+			vec3 vb = scene->t_vertices_gpu[scene->t_indices_gpu[scene->tri_count * 3 - (counter * 3) + 1]];
+			vec3 vc = scene->t_vertices_gpu[scene->t_indices_gpu[scene->tri_count * 3 - (counter * 3) + 2]];
+			vec3 ab = vb - va;
+			vec3 ac = vc - va;
+
+			float w1 = random_float(seed);
+			float w2 = random_float(seed);
+
+			 random_point = va + (w1 * ab) + (w2 * ac);
+			 break;
+		}
+		counter++;
+	}
+
+
+	//calculate direct illumination
+	vec3 shadow_ray_direction = random_point - ray->intersection_point;
+
+	vec3 normal = scene->t_normals_gpu[scene->tri_count - counter];
+	float dot_product = dot(ray->direction, normal);
+	if (dot_product > 0.0f){
+		normal *= -1.0f;
+	}
+
+	float distance_squared = shadow_ray_direction.length() * shadow_ray_direction.length();
+	shadow_ray_direction = normalize(shadow_ray_direction);
+
+	Ray shadow_ray = Ray(ray->intersection_point + (0.001f * shadow_ray_direction), shadow_ray_direction, ray->pixel_index);
+
+	float area = scene->light_areas_gpu[counter- 1];
+	float solid_angle = dot(normal, (shadow_ray_direction)) * (area / distance_squared);
+	float inv_pdf = (scene->total_light_area / area);
+	//printf("%f | %f \n", solid_angle, inv_pdf);
+	return brdf * scene->emission * solid_angle * dot(normal, shadow_ray_direction) * inv_pdf;
 }
 
-//Main Kernels
-__global__ void set_global_variables(int ray_buffer_size){
+//draw to cuda surface
+__device__ void Draw(vec4& colour, int x, int y){
+	surf2Dwrite(colour, screen, x * sizeof(vec4), y);
+}
+
+/**DEBUG KERNELS/FUNCTIONS**/
+
+//generic setup for printing things
+__global__ void print_helper(vec4* framebf){
+	for (int i = 0; i < SCRHEIGHT * SCRWIDTH; i++){
+		printf("%f %f %f \n", framebf[i].r, framebf[i].g, framebf[i].b);
+	}
+}
+
+/**MAIN KERNELS**/
+
+//reset kernel variables
+__global__ void SetGlobalVariables(int ray_buffer_size){
 	const unsigned int last_frame_stop = ray_buffer_size - counter_primary;
 	start_position += last_frame_stop;
 	start_position = start_position % (SCRWIDTH * SCRHEIGHT);
@@ -130,39 +179,29 @@ __global__ void set_global_variables(int ray_buffer_size){
 	debug_count = 0;
 }
 
-__device__ void draw(vec4& colour, int x, int y){
-	surf2Dwrite(colour, screen, x * sizeof(vec4), y);
-}
-
+//process and draw each pixel colour
 __global__ void draw_frame(vec4* frame_buffer){
+
 	const int x = blockIdx.x * blockDim.x + threadIdx.x;
 	const int y = blockIdx.y * blockDim.y + threadIdx.y;
 	if (x >= SCRWIDTH || y >= SCRHEIGHT) return;
 
 	const int index = x + (y * SCRWIDTH);
 	vec3 temp_colour = vec3();
+
+	//sample counter is stored in .a 
 	temp_colour.r = frame_buffer[index].r / frame_buffer[index].a;
 	temp_colour.g = frame_buffer[index].g / frame_buffer[index].a;
 	temp_colour.b = frame_buffer[index].b / frame_buffer[index].a;
 
-	vec4 colour = vec4(temp_colour, 1.0f);
-	draw(colour, y, x);
+	vec3 exponent = vec3(1.0f / 2.2f);
+	vec4 colour = vec4(pow(temp_colour, exponent), 1.0f);
+
+	Draw(colour, y, x);
 }
 
-__global__ void colour(vec4* frame_buffer, int frame){
-
-	int x = (blockIdx.x * blockDim.x) + threadIdx.x;
-	int y = (blockIdx.y * blockDim.y) + threadIdx.y;
-	int index = x + (y * SCRWIDTH);
-
-	if (x >= SCRWIDTH || y >= SCRHEIGHT){
-		return;
-	}
-	unsigned int seed = (index + frame * 147565741) * 720898027 * index;
-	frame_buffer[index] = vec4(random_float(seed), random_float(seed), random_float(seed), 1.0f);
-}
-
-__global__ void generatePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 stepV, vec3 c_position, Ray* ray_buffer, int ray_buffer_size, int frame){
+//genereate kernel
+__global__ void GeneratePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 stepV, vec3 c_position, Ray* ray_buffer, int ray_buffer_size, int frame){
 
 	while (true){
 		int index = atomicAdd(&counter_primary, 1);
@@ -186,7 +225,8 @@ __global__ void generatePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 
 	}
 }
 
-__global__ void extend(Scene scene, Ray* ray_buffer, int ray_buffer_size, int triangle_count, int frame){
+//extend kernel
+__global__ void Extend(Scene scene, Ray* ray_buffer, int ray_buffer_size, int triangle_count, int frame){
 	while (true){
 		int index = atomicAdd(&counter_extend, 1);
 		unsigned int seed = (index + frame * 147565741) * 720898027 * index;
@@ -224,7 +264,8 @@ __global__ void extend(Scene scene, Ray* ray_buffer, int ray_buffer_size, int tr
 	}
 }
 
-__global__ void shade(Scene scene, Ray* ray_buffer, int ray_buffer_size){
+//shade kernel
+__global__ void Shade(Scene scene, Ray* ray_buffer, int ray_buffer_size, int frame){
 	while (true){
 		int index = atomicAdd(&counter_shade, 1);
 
@@ -241,12 +282,18 @@ __global__ void shade(Scene scene, Ray* ray_buffer, int ray_buffer_size){
 		switch (current_ray->intersected_material.type){
 			//Background
 		case 0:
-			current_ray->cumulative_colour = vec3(0.0f, 0.0f, 0.0f);
+			if (current_ray->bounce == 0){
+				current_ray->cumulative_colour = scene.bg_colour;
+			} else{
+				current_ray->cumulative_colour = vec3(0.0f, 0.0f, 0.0f);
+			}
+
 			current_ray->terminate_flag = true;
 			break;
 			//Light
 		case 1:
-			current_ray->cumulative_colour *= scene.emission;
+
+			current_ray->cumulative_colour = current_ray->cumulative_colour * scene.emission;
 			current_ray->terminate_flag = true;
 			break;
 			//Labertian
@@ -257,8 +304,10 @@ __global__ void shade(Scene scene, Ray* ray_buffer, int ray_buffer_size){
 				normal *= -1.0f;
 			}
 			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
-			vec3 inv_PDF = vec3(DOUBLEPI, DOUBLEPI, DOUBLEPI);
-			current_ray->cumulative_colour = inv_PDF * BRDF * current_ray->cumulative_colour * (dot(current_ray->reflected_direction, normal));
+			float inv_PDF = DOUBLEPI;
+
+			vec3 addition = inv_PDF * BRDF * (dot(current_ray->reflected_direction, normal));
+			current_ray->cumulative_colour *= addition;
 			break;
 		default:
 			break;
@@ -266,7 +315,58 @@ __global__ void shade(Scene scene, Ray* ray_buffer, int ray_buffer_size){
 	}
 }
 
-__global__ void connect(Scene scene, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, int triangle_count, vec4* frame_buffer){
+__global__ void ShadeReference(Scene scene, Ray* ray_buffer, int ray_buffer_size, vec4* frame_buffer){
+	while (true){
+		int index = atomicAdd(&counter_shade, 1);
+
+		if (index >= ray_buffer_size){
+			return;
+		}
+		Ray* current_ray = &ray_buffer[index];
+		float max_distance = MAXDISTANCE;
+
+		if (ray_buffer[index].t < max_distance && ray_buffer[index].bounce <= MAXBOUNCE){
+			current_ray->intersected_material = scene.t_mats_gpu[current_ray->intersection_index];
+		}
+
+		switch (current_ray->intersected_material.type){
+		//Background
+		case 0:
+			if (current_ray->bounce == 0){
+				current_ray->cumulative_colour = scene.bg_colour;
+			} else{
+				current_ray->cumulative_colour = vec3(0.0f, 0.0f, 0.0f);
+			}
+
+			current_ray->terminate_flag = true;
+			break;
+		//Light
+		case 1:
+
+			current_ray->cumulative_colour = current_ray->cumulative_colour * scene.emission;
+			current_ray->terminate_flag = true;
+			break;
+		//Labertian
+		case 2:
+			vec3 normal = scene.t_normals_gpu[current_ray->intersection_index];
+			float dot_product = dot(current_ray->direction, normal);
+			if (dot_product > 0.0f){
+				normal *= -1.0f;
+			}
+			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
+			float inv_PDF = DOUBLEPI;
+
+			vec3 addition = inv_PDF * BRDF * (dot(current_ray->reflected_direction, normal));
+			current_ray->cumulative_colour *= addition;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+//connect kernel
+__global__ void Connect(Scene scene, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, int triangle_count, vec4* frame_buffer){
 	while (true){
 		int index = atomicAdd(&counter_connect, 1);
 
@@ -275,20 +375,16 @@ __global__ void connect(Scene scene, Ray* ray_buffer, Ray* ray_buffer_next, int 
 		}
 
 		Ray* current_ray = &ray_buffer[index];
+
+		//either terminate or connect to the next step in path
 		switch (current_ray->terminate_flag){
 		case true:
-			//clamp to 255
-			if (current_ray->cumulative_colour.r > 255.0f)
-				current_ray->cumulative_colour.r = 255.0f;
-			if (current_ray->cumulative_colour.g > 255.0f)
-				current_ray->cumulative_colour.g = 255.0f;
-			if (current_ray->cumulative_colour.b > 255.0f)
-				current_ray->cumulative_colour.b = 255.0f;
 
-			atomicAdd(&frame_buffer[current_ray->pixel_index].r, current_ray->cumulative_colour.r);
-			atomicAdd(&frame_buffer[current_ray->pixel_index].g, current_ray->cumulative_colour.g);
-			atomicAdd(&frame_buffer[current_ray->pixel_index].b, current_ray->cumulative_colour.b);
-			atomicAdd(&frame_buffer[current_ray->pixel_index].a, 1.0f);
+			atomicAdd(&(frame_buffer[current_ray->pixel_index].r), current_ray->cumulative_colour.r);
+			atomicAdd(&(frame_buffer[current_ray->pixel_index].g), current_ray->cumulative_colour.g);
+			atomicAdd(&(frame_buffer[current_ray->pixel_index].b), current_ray->cumulative_colour.b);
+			atomicAdd(&(frame_buffer[current_ray->pixel_index].a), 1.0f);
+
 			atomicAdd(&debug_count, 1);
 			break;
 		case false:
@@ -304,13 +400,7 @@ __global__ void connect(Scene scene, Ray* ray_buffer, Ray* ray_buffer_next, int 
 	}
 }
 
-cudaError print(cudaArray_const_t array, vec4* frame_buffer, KernelParams & kernel_params, int ray_buffer_size, int frame){
-	print_frame << <1, 1 >> > (frame_buffer, kernel_params.ray_buffer, kernel_params.scene, frame);
-	cudaAssert(DeviceSynchronize());
-	cudaError c = cudaError();
-	return c;
-}
-
+//Launcher function
 cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelParams & kernel_params, int ray_buffer_size, int frame){
 	
 	cudaError err = cudaAssert(BindSurfaceToArray(screen, array));
@@ -318,21 +408,17 @@ cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelPar
 		return err;
 	}
 
-	generatePrimaryRays << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.top_left, kernel_params.step_h, kernel_params.step_v, kernel_params.c_position, kernel_params.ray_buffer, ray_buffer_size, frame);
-	set_global_variables << <1, 1 >> > (ray_buffer_size);
-	extend << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, kernel_params.scene.tri_count, frame);
-	shade << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size);
-	connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, kernel_params.scene.tri_count, frame_buffer);
+	GeneratePrimaryRays << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.top_left, kernel_params.step_h, kernel_params.step_v, kernel_params.c_position, kernel_params.ray_buffer, ray_buffer_size, frame);
+	SetGlobalVariables << <1, 1 >> > (ray_buffer_size);
+	Extend << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, kernel_params.scene.tri_count, frame);
+	//Shade << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, frame);
+	ShadeReference << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, frame_buffer);
+	Connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, kernel_params.scene.tri_count, frame_buffer);
 	cudaAssert(DeviceSynchronize());
 
+	//print_helper << <1, 1 >> > (frame_buffer);
+	
 	std::swap(kernel_params.ray_buffer, kernel_params.ray_buffer_next);
-
-	//const dim3 blockSize2d(8, 8);
-	//const dim3 blocksPerGrid2d(
-	//	(SCRWIDTH + blockSize2d.x - 1) / blockSize2d.x,
-	//	(SCRHEIGHT + blockSize2d.y - 1) / blockSize2d.y);
-	//colour << <blocksPerGrid2d, blockSize2d >> > (frame_buffer, frame);
-
 	dim3 threads = dim3(16, 16);
  	dim3 blocks = dim3((SCRWIDTH + threads.x - 1) / threads.x, (SCRHEIGHT + threads.y - 1) / threads.y);
 	draw_frame << <blocks, threads >> > (frame_buffer);

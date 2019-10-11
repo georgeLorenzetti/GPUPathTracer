@@ -2,9 +2,9 @@
 
 using namespace glm;
 
-void Scene::cornell_setup(){
+void Scene::CornellSetup(){
 	//scene
-	this->bg_colour = vec3(66, 134, 244);
+	this->bg_colour = vec3(66.0f/255.0f, 134.0f/255.0f, 244.0f/255.0f);
 
 	this->t_vertices = {
 
@@ -48,11 +48,21 @@ void Scene::cornell_setup(){
 		vec3(-1.0f, -1.0f, -6.0f), //26
 		vec3(-1.0f, -1.0f, -5.0f),//27
 
+		//small box
+		vec3(1.0f, -3.0f, -5.0f), //28
+		vec3(1.5f, -3.0f, -4.5f), //29
+		vec3(2.0f, -3.0f, -5.0f),//30
+		vec3(1.5f, -3.0f, -5.5f),//31
+		vec3(1.0f, -2.0f, -5.0f), //32
+		vec3(1.5f, -2.0f, -4.5f), //33
+		vec3(2.0f, -2.0f, -5.0f),//34
+		vec3(1.5f, -2.0f, -5.5f),//35
+
 		//lights
-		vec3(0.5f, 2.9f, -4.0f), //28
-		vec3(0.5f, 2.9f, -5.0f), //29
-		vec3(-0.5f, 2.9f, -4.0f), //30
-		vec3(-0.5f, 2.9f, -5.0f), //31
+		vec3(1.5f, 2.99f, -5.0f), //36
+		vec3(1.5f, 2.99f, -6.5f), //37
+		vec3(-1.5f, 2.99f, -5.0f), //38
+		vec3(-1.5f, 2.99f, -6.5f), //39
 	};
 
 	this->t_indices = {
@@ -96,52 +106,87 @@ void Scene::cornell_setup(){
 		26, 24, 25,
 		26, 27, 25,
 
+		//small box
+		28, 29, 33,
+		28, 32, 33,
+
+		33, 34, 30,
+		33, 29, 30,
+
+		35, 34, 30,
+		35, 31, 30,
+
+		32, 35, 31,
+		31, 28, 32,
+
+		32, 33, 34,
+		32, 35, 34,
+
+		28, 29, 30,
+		30, 31, 28,
 
 		//lights
-		28, 29, 30,
-		30, 29, 31
+		36, 37, 38,
+		38, 37, 39
 	};
 
 	this->t_mats = std::vector<Material>();
 
 	//*scene triangles*//
 	//floor
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
 
 	//ceiling
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
 
 	//left wall
-	this->t_mats.push_back(Material(2, vec3(255.0f, 0.0f, 0.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 0.0f, 0.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
 
 	//right wall
-	this->t_mats.push_back(Material(2, vec3(0.0f, 255.0f, 0.0f)));
-	this->t_mats.push_back(Material(2, vec3(0.0f, 255.0f, 0.0f)));
+	this->t_mats.push_back(Material(2, vec3(0.0f, 1.0f, 0.0f)));
+	this->t_mats.push_back(Material(2, vec3(0.0f, 1.0f, 0.0f)));
 
 	//back wall
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
 
 	//big box
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
-	this->t_mats.push_back(Material(2, vec3(255.0f, 255.0f, 255.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+
+	//small box
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
 
 	//lights
+	this->light_tri_count = 0;
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
+	this->light_tri_count++;
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
+	this->light_tri_count++;
 
 	this->t_normals = std::vector<vec3>();
 	for (int i = 0; i < t_mats.size(); i++){
@@ -152,20 +197,40 @@ void Scene::cornell_setup(){
 		normal *= -1;
 		t_normals.push_back(normal);
 	}
+
+	this->light_areas = std::vector<float>();
+	this->tri_count = this->t_mats.size();
+	this->total_light_area = 0;
+	for (int i = 1; i <= light_tri_count; i++){
+		vec3 va = t_vertices[t_indices[t_mats.size()*3 - (i*3)]];
+		vec3 vb = t_vertices[t_indices[t_mats.size()*3 - (i*3) + 1]];
+		vec3 vc = t_vertices[t_indices[t_mats.size()*3 - (i*3) + 2]];
+
+		vec3 ab = vb - va;
+		vec3 ac = vc - va;
+
+		vec3 cr = cross(ab, ac);
+		float area = length(cr) * 0.5f;
+		this->light_areas.push_back(area);
+		this->total_light_area += area;
+	}
+	//printf("%f \n", total_light_area);
 }
 
-void Scene::init(){
-	cornell_setup();
+void Scene::Init(){
+	CornellSetup();
 	this->tri_count = this->t_mats.size();
 	std::cout << tri_count << std::endl;
+
 	cudaAssert(Malloc(&(this->t_vertices_gpu), this->t_vertices.size() * sizeof(vec3)));
 	cudaAssert(Malloc(&(this->t_indices_gpu), this->t_indices.size() * sizeof(int)));
 	cudaAssert(Malloc(&(this->t_mats_gpu), this->t_mats.size() * sizeof(Material)));
 	cudaAssert(Malloc(&(this->t_normals_gpu), this->t_normals.size() * sizeof(vec3)));
+	cudaAssert(Malloc(&(this->light_areas_gpu), this->light_areas.size() * sizeof(float)));
 
 	cudaAssert(Memcpy(this->t_vertices_gpu, this->t_vertices.data(), this->t_vertices.size() * sizeof(vec3), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->t_indices_gpu, this->t_indices.data(), this->t_indices.size() * sizeof(int), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->t_mats_gpu, this->t_mats.data(), this->t_mats.size() * sizeof(Material), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->t_normals_gpu, this->t_normals.data(), this->t_normals.size() * sizeof(vec3), cudaMemcpyHostToDevice));
-
+	cudaAssert(Memcpy(this->light_areas_gpu, this->light_areas.data(), this->light_areas.size() * sizeof(float), cudaMemcpyHostToDevice));
 }

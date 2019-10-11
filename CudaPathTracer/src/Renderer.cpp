@@ -7,7 +7,7 @@ Renderer::Renderer(int _width, int _height){
 
 	glNamedFramebufferRenderbuffer(frame_buffer, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buffer);
 
-	set_size(_width, _height);
+	SetSize(_width, _height);
 }
 Renderer::~Renderer(){
 	cudaError cuda_err;
@@ -21,7 +21,7 @@ Renderer::~Renderer(){
 	
 }
 
-cudaError Renderer::set_size(int _width, int _height){
+cudaError Renderer::SetSize(int _width, int _height){
 	cudaError cuda_err = cudaSuccess;
 
 	width = _width;
@@ -39,6 +39,6 @@ cudaError Renderer::set_size(int _width, int _height){
 	return cuda_err;
 }
 
-void Renderer::draw(){
+void Renderer::Draw(){
 	glBlitNamedFramebuffer(frame_buffer, 0, 0, 0, width, height, 0, height, width, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }

@@ -5,8 +5,8 @@ class Renderer {
 	public:
 		Renderer(int w, int h);
 		~Renderer();
-		cudaError set_size(const int width, const int height);
-		void draw();
+		cudaError SetSize(const int width, const int height);
+		void Draw();
 
 		int width;
 		int height;
