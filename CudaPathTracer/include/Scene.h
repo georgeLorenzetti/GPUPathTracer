@@ -15,7 +15,7 @@ class Scene{
 		int tri_count;
 		int light_tri_count;
 		float total_light_area;
-		float emission = 10.0f;
+		float emission = 5.0f;
 		glm::vec3 bg_colour;
 
 	private:

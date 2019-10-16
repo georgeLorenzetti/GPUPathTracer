@@ -62,6 +62,7 @@ struct KernelParams{
 
 	Ray* ray_buffer;
 	Ray* ray_buffer_next;
+	Ray* shadow_ray_buffer;
 	int* ray_count;
 
 	int sm_cores;

@@ -17,6 +17,7 @@ PathTracer::PathTracer(int cores){
 	//allocate memory for kernel parameters
 	cudaAssert(DeviceSynchronize());
 
+	cudaAssert(Malloc(&kernel_params.shadow_ray_buffer, BUFFERSIZE * MAXBOUNCE * sizeof(Ray)));
 	cudaAssert(Malloc(&kernel_params.ray_buffer, BUFFERSIZE * sizeof(Ray)));
 	cudaAssert(Malloc(&kernel_params.ray_buffer_next, BUFFERSIZE * sizeof(Ray)));
 	cudaAssert(Malloc(&kernel_params.ray_count, sizeof(int)));

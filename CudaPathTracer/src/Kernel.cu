@@ -11,7 +11,9 @@ __device__ int counter_connect = 0;
 __device__ int start_position = 0;
 __device__ int count_shadow_ray = 0;
 __device__ int connect_ray_index = 0;
+__device__ int helper_count = 0;
 
+__device__ int active_paths_gpu = 0;
 //debug variables
 __device__ int debug_count = 0;
 
@@ -157,9 +159,14 @@ __device__ void Draw(vec4& colour, int x, int y){
 /**DEBUG KERNELS/FUNCTIONS**/
 
 //generic setup for printing things
-__global__ void print_helper(vec4* framebf){
-	for (int i = 0; i < SCRHEIGHT * SCRWIDTH; i++){
-		printf("%f %f %f \n", framebf[i].r, framebf[i].g, framebf[i].b);
+__global__ void print_helper(Ray* ray_buffer){
+	while(true){
+		int index = atomicAdd(&helper_count, 1);
+		if (index >= active_paths_gpu){
+			return;
+		}
+
+		printf("%i \n ", ray_buffer[index].bounce);
 	}
 }
 
@@ -167,16 +174,18 @@ __global__ void print_helper(vec4* framebf){
 
 //reset kernel variables
 __global__ void SetGlobalVariables(int ray_buffer_size){
-	const unsigned int last_frame_stop = ray_buffer_size - counter_primary;
-	start_position += last_frame_stop;
-	start_position = start_position % (SCRWIDTH * SCRHEIGHT);
-
 	counter_primary = 0;
 	counter_extend = 0;
 	counter_shade = 0;
 	counter_connect = 0;
 	connect_ray_index = 0;
 	debug_count = 0;
+}
+
+__global__ void SetupNextIteration(int* m_a_p){
+	active_paths_gpu = connect_ray_index;
+	helper_count = 0;
+	*m_a_p = active_paths_gpu;
 }
 
 //process and draw each pixel colour
@@ -188,6 +197,8 @@ __global__ void draw_frame(vec4* frame_buffer){
 
 	const int index = x + (y * SCRWIDTH);
 	vec3 temp_colour = vec3();
+
+	atomicAdd(&(frame_buffer[index].a), 1.0f);
 
 	//sample counter is stored in .a 
 	temp_colour.r = frame_buffer[index].r / frame_buffer[index].a;
@@ -207,21 +218,20 @@ __global__ void GeneratePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 
 		int index = atomicAdd(&counter_primary, 1);
 		int buffer_index = index + connect_ray_index;
 
-		if (buffer_index >= ray_buffer_size){
+		if (index >= ray_buffer_size){
 			return;
 		}
 
-		const int x = (start_position + index) % SCRWIDTH;
-		const int y = ((start_position + index) / SCRWIDTH) % SCRHEIGHT;
+		const int x = (index) % SCRWIDTH;
+		const int y = (index / SCRWIDTH) % SCRHEIGHT;
 
 		vec3 pixelPoint = vec3(topLeft.x, topLeft.y, topLeft.z) + (stepH * (y + 0.5f)) + (stepV * (x + 0.5f));
 		vec3 rayDirection = vec3(pixelPoint.x - c_position.x, pixelPoint.y - c_position.y, pixelPoint.z - c_position.z);
 		vec3 rayOrigin = vec3(c_position.x, c_position.y, c_position.z);
 		rayDirection = normalize(rayDirection);
 
-		
-		ray_buffer[buffer_index] = Ray(rayOrigin, rayDirection, x + (y * SCRWIDTH));
-
+		ray_buffer[index] = Ray(rayOrigin, rayDirection, x + (y * SCRWIDTH));
+		atomicAdd(&active_paths_gpu, 1);
 	}
 }
 
@@ -230,7 +240,7 @@ __global__ void Extend(Scene scene, Ray* ray_buffer, int ray_buffer_size, int tr
 	while (true){
 		int index = atomicAdd(&counter_extend, 1);
 		unsigned int seed = (index + frame * 147565741) * 720898027 * index;
-		if (index >= ray_buffer_size){
+		if (index >= active_paths_gpu){
 			return;
 		}
 
@@ -260,24 +270,26 @@ __global__ void Extend(Scene scene, Ray* ray_buffer, int ray_buffer_size, int tr
 			}
 			ray_buffer[index].reflected_direction = normalize(sampleHemisphere(normal, seed));
 			ray_buffer[index].intersection_index = i;
+
+			float max_distance = MAXDISTANCE;
+
+			if (ray_buffer[index].t < max_distance && ray_buffer[index].bounce <= MAXBOUNCE){
+				ray_buffer[index].intersected_material = scene.t_mats_gpu[ray_buffer[index].intersection_index];
+			}
 		}
 	}
 }
 
 //shade kernel
-__global__ void Shade(Scene scene, Ray* ray_buffer, int ray_buffer_size, int frame){
+__global__ void Shade(Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, int frame){
 	while (true){
 		int index = atomicAdd(&counter_shade, 1);
+		unsigned int seed = (index + frame * 147565741) * 720898027 * index;
 
-		if (index >= ray_buffer_size){
+		if (index >= active_paths_gpu){
 			return;
 		}
 		Ray* current_ray = &ray_buffer[index];
-		float max_distance = MAXDISTANCE;
-
-		if (ray_buffer[index].t < max_distance && ray_buffer[index].bounce <= MAXBOUNCE){
-			current_ray->intersected_material = scene.t_mats_gpu[current_ray->intersection_index];
-		}
 
 		switch (current_ray->intersected_material.type){
 			//Background
@@ -292,34 +304,93 @@ __global__ void Shade(Scene scene, Ray* ray_buffer, int ray_buffer_size, int fra
 			break;
 			//Light
 		case 1:
-
 			current_ray->cumulative_colour = current_ray->cumulative_colour * scene.emission;
 			current_ray->terminate_flag = true;
 			break;
 			//Labertian
 		case 2:
+
+			float rand = random_float(seed);
+			float split = 0;
+
+			int counter = 1;
+			vec3 random_point = vec3(0.0f);
+			while (counter <= scene.light_tri_count){
+				split += scene.light_areas_gpu[counter - 1];
+				float proportion = split / scene.total_light_area;
+
+				if (proportion > rand){
+
+					//get random point on the light
+					vec3 point = vec3(0.0f);
+					vec3 va = scene.t_vertices_gpu[scene.t_indices_gpu[scene.tri_count * 3 - (counter * 3)]];
+					vec3 vb = scene.t_vertices_gpu[scene.t_indices_gpu[scene.tri_count * 3 - (counter * 3) + 1]];
+					vec3 vc = scene.t_vertices_gpu[scene.t_indices_gpu[scene.tri_count * 3 - (counter * 3) + 2]];
+					vec3 ab = vb - va;
+					vec3 ac = vc - va;
+
+					float w1 = random_float(seed);
+					float w2 = random_float(seed);
+
+					random_point = va + (w1 * ab) + (w2 * ac);
+					break;
+				}
+				counter++;
+			}
+
+			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
+
+			vec3 shadow_ray_direction = random_point - current_ray->intersection_point;
+			vec3 shadow_ray_origin = current_ray->intersection_point + (0.0001f * shadow_ray_direction);
+			float distance_sqared = dot(shadow_ray_direction, shadow_ray_direction);
+			shadow_ray_direction = normalize(shadow_ray_direction);
+
 			vec3 normal = scene.t_normals_gpu[current_ray->intersection_index];
-			float dot_product = dot(current_ray->direction, normal);
-			if (dot_product > 0.0f){
+			if (dot(current_ray->direction, normal) > 0.0f){
 				normal *= -1.0f;
 			}
-			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
-			float inv_PDF = DOUBLEPI;
 
+			vec3 light_normal = scene.t_normals_gpu[scene.tri_count - counter];
+			if (dot(shadow_ray_direction, normal) > 0.0f){
+				normal *= -1.0f;
+			}
+
+
+			float n_dot_l = dot(normal, shadow_ray_direction);
+			float ln_dot_l = dot(light_normal, -1.0f * shadow_ray_direction);
+			if (ln_dot_l > 0 && n_dot_l > 0){
+				float area = scene.light_areas_gpu[scene.light_tri_count - counter];
+				float inverse_area_pdf = scene.total_light_area / area;
+				float solid_angle = (area * (ln_dot_l)) / distance_sqared;
+
+				vec3 shadow_colour = BRDF * scene.emission * solid_angle * inverse_area_pdf * n_dot_l * current_ray->cumulative_colour;
+				int shadow_index = atomicAdd(&count_shadow_ray, 1);
+				shadow_ray_buffer[shadow_index] = Ray(shadow_ray_origin, shadow_ray_direction, current_ray->pixel_index, shadow_colour);
+			}
+
+			float inv_PDF = DOUBLEPI;
 			vec3 addition = inv_PDF * BRDF * (dot(current_ray->reflected_direction, normal));
 			current_ray->cumulative_colour *= addition;
 			break;
 		default:
 			break;
 		}
+
+		
+		 if(!current_ray->terminate_flag){
+			vec3 ray_origin = current_ray->intersection_point + (current_ray->reflected_direction * 0.00001f);
+			int e_index = atomicAdd(&connect_ray_index, 1);
+			ray_buffer_next[e_index] = Ray(ray_origin, current_ray->reflected_direction, current_ray->pixel_index, current_ray->cumulative_colour);
+			ray_buffer_next[e_index].bounce = current_ray->bounce + 1;
+		 }
 	}
 }
 
-__global__ void ShadeReference(Scene scene, Ray* ray_buffer, int ray_buffer_size, vec4* frame_buffer){
+__global__ void ShadeReference(Scene scene, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, vec4* frame_buffer){
 	while (true){
 		int index = atomicAdd(&counter_shade, 1);
 
-		if (index >= ray_buffer_size){
+		if (index >= active_paths_gpu){
 			return;
 		}
 		Ray* current_ray = &ray_buffer[index];
@@ -342,7 +413,6 @@ __global__ void ShadeReference(Scene scene, Ray* ray_buffer, int ray_buffer_size
 			break;
 		//Light
 		case 1:
-
 			current_ray->cumulative_colour = current_ray->cumulative_colour * scene.emission;
 			current_ray->terminate_flag = true;
 			break;
@@ -362,43 +432,68 @@ __global__ void ShadeReference(Scene scene, Ray* ray_buffer, int ray_buffer_size
 		default:
 			break;
 		}
-	}
-}
 
-//connect kernel
-__global__ void Connect(Scene scene, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, int triangle_count, vec4* frame_buffer){
-	while (true){
-		int index = atomicAdd(&counter_connect, 1);
-
-		if (index >= ray_buffer_size){
-			return;
-		}
-
-		Ray* current_ray = &ray_buffer[index];
-
-		//either terminate or connect to the next step in path
 		switch (current_ray->terminate_flag){
 		case true:
-
 			atomicAdd(&(frame_buffer[current_ray->pixel_index].r), current_ray->cumulative_colour.r);
 			atomicAdd(&(frame_buffer[current_ray->pixel_index].g), current_ray->cumulative_colour.g);
 			atomicAdd(&(frame_buffer[current_ray->pixel_index].b), current_ray->cumulative_colour.b);
-			atomicAdd(&(frame_buffer[current_ray->pixel_index].a), 1.0f);
 
 			atomicAdd(&debug_count, 1);
+
 			break;
 		case false:
 			vec3 ray_origin = current_ray->intersection_point + (current_ray->reflected_direction * 0.00001f);
 			int e_index = atomicAdd(&connect_ray_index, 1);
 			ray_buffer_next[e_index] = Ray(ray_origin, current_ray->reflected_direction, current_ray->pixel_index, current_ray->cumulative_colour);
 			ray_buffer_next[e_index].bounce = current_ray->bounce + 1;
-			atomicAdd(&frame_buffer[current_ray->pixel_index].a, 1.0f);
 			break;
 		default:
 			break;
 		}
 	}
 }
+
+//connect kernel
+__global__ void Connect(Scene scene, Ray* shadow_ray_buffer, int triangle_count, vec4* frame_buffer){
+	while (true){
+		int index = atomicAdd(&counter_connect, 1);
+
+		if (index >= count_shadow_ray){
+			return;
+		}
+
+		Ray* current_ray = &shadow_ray_buffer[index];
+		for (int i = 0; i < triangle_count; i++){
+			float current_t;
+			vec3 intersection_point;
+
+			bool intersected_something = intersect_triangle(*current_ray,
+				scene.t_vertices_gpu[scene.t_indices_gpu[i * 3]],
+				scene.t_vertices_gpu[scene.t_indices_gpu[i * 3 + 1]],
+				scene.t_vertices_gpu[scene.t_indices_gpu[i * 3 + 2]],
+				intersection_point,
+				current_t);
+
+			if (!intersected_something || current_t < 0 || current_t >= current_ray->t){
+				continue;
+			}
+
+			current_ray->t = current_t;
+			current_ray->intersected_material = scene.t_mats_gpu[current_ray->intersection_index];
+		}
+
+		if (current_ray->intersected_material.type == 1){
+			atomicAdd(&(frame_buffer[current_ray->pixel_index].r), current_ray->cumulative_colour.r);
+			atomicAdd(&(frame_buffer[current_ray->pixel_index].g), current_ray->cumulative_colour.g);
+			atomicAdd(&(frame_buffer[current_ray->pixel_index].b), current_ray->cumulative_colour.b);
+
+			atomicAdd(&debug_count, 1);
+		}
+	}
+}
+
+__global__ void g_singleAnswer(int* answer){ *answer = 2; }
 
 //Launcher function
 cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelParams & kernel_params, int ray_buffer_size, int frame){
@@ -408,17 +503,31 @@ cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelPar
 		return err;
 	}
 
-	GeneratePrimaryRays << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.top_left, kernel_params.step_h, kernel_params.step_v, kernel_params.c_position, kernel_params.ray_buffer, ray_buffer_size, frame);
-	SetGlobalVariables << <1, 1 >> > (ray_buffer_size);
-	Extend << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, kernel_params.scene.tri_count, frame);
-	//Shade << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, frame);
-	ShadeReference << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, frame_buffer);
-	Connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, kernel_params.scene.tri_count, frame_buffer);
-	cudaAssert(DeviceSynchronize());
 
+
+	int active_paths = BUFFERSIZE;
+	int* malloc_active_paths;
+	cudaMalloc(&malloc_active_paths, sizeof(int));
+
+	GeneratePrimaryRays << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.top_left, kernel_params.step_h, kernel_params.step_v, kernel_params.c_position, kernel_params.ray_buffer, ray_buffer_size, frame);
+	while(active_paths > 0){
+		SetGlobalVariables << <1, 1 >> > (ray_buffer_size);	
+		Extend << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, ray_buffer_size, kernel_params.scene.tri_count, frame);
+#if 0		
+		Shade << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.shadow_ray_buffer, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, frame);
+		Connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.shadow_ray_buffer, kernel_params.scene.tri_count, frame_buffer);
+#else
+		ShadeReference << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, frame_buffer);
+#endif
+		SetupNextIteration << <1, 1 >> > (malloc_active_paths);
+		cudaMemcpy(&active_paths, malloc_active_paths, sizeof(int), cudaMemcpyDeviceToHost);
+
+		cudaAssert(DeviceSynchronize());
+		std::swap(kernel_params.ray_buffer, kernel_params.ray_buffer_next);
+	}
 	//print_helper << <1, 1 >> > (frame_buffer);
-	
-	std::swap(kernel_params.ray_buffer, kernel_params.ray_buffer_next);
+	cudaFree(malloc_active_paths);
+
 	dim3 threads = dim3(16, 16);
  	dim3 blocks = dim3((SCRWIDTH + threads.x - 1) / threads.x, (SCRHEIGHT + threads.y - 1) / threads.y);
 	draw_frame << <blocks, threads >> > (frame_buffer);

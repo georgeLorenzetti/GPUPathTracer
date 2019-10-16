@@ -94,20 +94,24 @@ int main(){
 	PathTracer path_tracer = PathTracer(properties.multiProcessorCount);
 	// render loop
 	// -----------
+	int frames = 0;
 	while (!glfwWindowShouldClose(window)){
 		// input
 		// -----
 		processInput(window);
 
-		path_tracer.Trace(&cuda_interop, frame_buffer);
-
+		//(frames < 1){
+			path_tracer.Trace(&cuda_interop, frame_buffer);
+		//}
 
 		// render
 		// ------
-		cuda_interop.draw();
+		cuda_interop.Draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+		frames++;
 	}
 
 	// glfw: terminate, clearing all previously allocated GLFW resources.
