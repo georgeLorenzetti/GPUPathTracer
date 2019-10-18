@@ -7,9 +7,49 @@ static void glfw_error_callback(int error, const char* description){
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window){
+bool processInput(GLFWwindow* window, PathTracer* path_tracer, float delta_time, float delta_x, float delta_y){
+	bool new_frame = false;
+
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
+		path_tracer->TranslateCamera(glm::vec3(0.0f, 0.0f, -1.0f), delta_time/1000.0f);
+		new_frame = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
+		path_tracer->TranslateCamera(glm::vec3(0.0f, 0.0f, 1.0f), delta_time / 1000.0f);
+		new_frame = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS){
+		path_tracer->TranslateCamera(glm::vec3(0.0f, 1.0f, 0.0f), delta_time / 1000.0f);
+		new_frame = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){
+		path_tracer->TranslateCamera(glm::vec3(0.0f, -1.0f, 0.0f), delta_time / 1000.0f);
+		new_frame = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
+		path_tracer->RotateCamera(glm::vec3(1.0f, 0.0f, 0.0f), delta_time / -1000.0f);
+		new_frame = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+		path_tracer->RotateCamera(glm::vec3(-1.0f, 0.0f, 0.0f), delta_time / 1000.0f);
+		new_frame = true;
+	}
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)){
+		printf("%f %f \n", delta_x, delta_y);
+		path_tracer->RotateCamera(glm::vec3(0.0f, 1.0f, 0.0f), delta_x * delta_time / 1000.0f);
+		path_tracer->RotateCamera(glm::vec3(1.0f, 0.0f, 0.0f), delta_y * delta_time / 1000.0f);
+		new_frame = true;
+	}
+
+	return new_frame;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -95,14 +135,32 @@ int main(){
 	// render loop
 	// -----------
 	int frames = 0;
-	while (!glfwWindowShouldClose(window)){
-		// input
-		// -----
-		processInput(window);
+	float old_time = clock();
+	double mouse_position_x, mouse_position_y;
+	glfwGetCursorPos(window, &mouse_position_x, &mouse_position_y);
 
-		//(frames < 1){
+	while (!glfwWindowShouldClose(window)){
+
+		//update time and mouse position values
+		float new_time = clock();
+		float delta_time = new_time - old_time;
+		old_time = new_time;
+
+		double old_mouse_x = mouse_position_x, old_mouse_y = mouse_position_y;
+		glfwGetCursorPos(window, &mouse_position_x, &mouse_position_y);
+		double delta_x = mouse_position_x - old_mouse_x;
+		double delta_y = mouse_position_y - old_mouse_y;
+
+		//process input
+		if (processInput(window, &path_tracer, delta_time, delta_x, delta_y)){
+			cudaAssert(Memset(frame_buffer, 0, SCRWIDTH * SCRHEIGHT * sizeof(glm::vec4)));
+		}
+		
+		//trace dem rays
+
+		if(frames >= 0){
 			path_tracer.Trace(&cuda_interop, frame_buffer);
-		//}
+		}
 
 		// render
 		// ------
@@ -110,7 +168,6 @@ int main(){
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-
 		frames++;
 	}
 

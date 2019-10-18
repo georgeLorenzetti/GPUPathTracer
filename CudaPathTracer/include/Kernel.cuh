@@ -55,6 +55,7 @@ public:
 	int bounce;
 	Material intersected_material;
 	glm::vec3 reflected_direction;
+	bool isShadow = false;
 };
 
 struct KernelParams{
@@ -64,13 +65,13 @@ struct KernelParams{
 	Ray* ray_buffer_next;
 	Ray* shadow_ray_buffer;
 	int* ray_count;
+	int* malloc_active_paths;
 
 	int sm_cores;
 
 	glm::vec3 top_left;
 	glm::vec3 step_h;
 	glm::vec3 step_v;
-
 	glm::vec3 c_position;
 };
 
