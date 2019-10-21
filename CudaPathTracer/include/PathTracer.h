@@ -9,7 +9,9 @@ public:
 	void Trace(Renderer* cuda_interop, glm::vec4* frame_buffer);
 
 	void TranslateCamera(glm::vec3 direction, float delta_time);
-	void RotateCamera(glm::vec3 direction, float delta_time);
+	void RotateCameraX(float delta_time);
+	void RotateCameraY(float delta_time);
+
 private:
 	KernelParams kernel_params;
 	Camera camera;

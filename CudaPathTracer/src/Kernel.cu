@@ -36,6 +36,39 @@ __device__ float random_float(unsigned int& seed){
 	return float(random_int(seed)) * 2.3283064365387e-10f;
 }
 
+__device__ vec3 cosineWeightedSample(vec3 normal, unsigned int& seed) {
+	float rand1 = random_float(seed);
+	float rand2 = random_float(seed);
+
+	const float r = sqrtf(rand1);
+	const float theta = DOUBLEPI * rand2;
+
+	const float x = r * cosf(theta);
+	const float z = r * sinf(theta);
+
+	vec3 sampleDirection = vec3(x, sqrtf(max(0.0f, 1 - rand1)), z);
+	sampleDirection = normalize(sampleDirection);
+	vec3 Nb;
+	vec3 Nt;
+
+	//createing coordinate systen around the normal
+	if (fabs(normal.x) > fabs(normal.y)) {
+		float denom = 1 / sqrtf(normal.x * normal.x + normal.z * normal.z);
+		Nt = vec3(normal.z, 0, -1.0f * normal.x) * denom;
+	}
+	else {
+		float denom = 1 / sqrtf(normal.y * normal.y + normal.z * normal.z);
+		Nt = vec3(0, -1.0f * normal.z, normal.y) * denom;
+	}
+	Nb = cross(normal, Nt);
+
+	Nt = vec3(normal.y * Nb.z - normal.z * Nb.y, normal.z * Nb.x - normal.x * Nb.z, normal.x * Nb.y - normal.y * Nb.x);
+
+	vec3 result = vec3(sampleDirection.x * Nb.x + sampleDirection.y * normal.x + sampleDirection.z * Nt.x, sampleDirection.x * Nb.y + sampleDirection.y * normal.y + sampleDirection.z * Nt.y, sampleDirection.x * Nb.z + sampleDirection.y * normal.z + sampleDirection.z * Nt.z);
+	result = normalize(result);
+	return result;
+}
+
 //take uniform random sample from hemisphere
 __device__ vec3 sampleHemisphere(vec3 normal, unsigned int& seed){
 	float rand1 = random_float(seed);
@@ -96,59 +129,6 @@ __device__ bool intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& int
 		return true;
 	} else
 		return false;
-}
-
-__device__ vec3 nee_importance_sample(Scene* scene, Ray* ray, vec3 brdf, unsigned int& seed){
-
-	//get random point on a light
-	float rand = random_float(seed);
-	float split = 0;
-
-	int counter = 1;
-	vec3 random_point = vec3(0.0f);
-	while (counter <= scene->light_tri_count){
-		split += scene->light_areas_gpu[counter - 1];
-		float proportion = split / scene->total_light_area;
-
-		if (proportion > rand){
-
-			//get random point on the light
-			vec3 point = vec3(0.0f);
-			vec3 va = scene->t_vertices_gpu[scene->t_indices_gpu[scene->tri_count * 3 - (counter * 3)]];
-			vec3 vb = scene->t_vertices_gpu[scene->t_indices_gpu[scene->tri_count * 3 - (counter * 3) + 1]];
-			vec3 vc = scene->t_vertices_gpu[scene->t_indices_gpu[scene->tri_count * 3 - (counter * 3) + 2]];
-			vec3 ab = vb - va;
-			vec3 ac = vc - va;
-
-			float w1 = random_float(seed);
-			float w2 = random_float(seed);
-
-			 random_point = va + (w1 * ab) + (w2 * ac);
-			 break;
-		}
-		counter++;
-	}
-
-
-	//calculate direct illumination
-	vec3 shadow_ray_direction = random_point - ray->intersection_point;
-
-	vec3 normal = scene->t_normals_gpu[scene->tri_count - counter];
-	float dot_product = dot(ray->direction, normal);
-	if (dot_product > 0.0f){
-		normal *= -1.0f;
-	}
-
-	float distance_squared = shadow_ray_direction.length() * shadow_ray_direction.length();
-	shadow_ray_direction = normalize(shadow_ray_direction);
-
-	Ray shadow_ray = Ray(ray->intersection_point + (0.001f * shadow_ray_direction), shadow_ray_direction, ray->pixel_index);
-
-	float area = scene->light_areas_gpu[counter- 1];
-	float solid_angle = dot(normal, (shadow_ray_direction)) * (area / distance_squared);
-	float inv_pdf = (scene->total_light_area / area);
-	//printf("%f | %f \n", solid_angle, inv_pdf);
-	return brdf * scene->emission * solid_angle * dot(normal, shadow_ray_direction) * inv_pdf;
 }
 
 //draw to cuda surface
@@ -333,6 +313,8 @@ __global__ void Shade(Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray*
 			}
 
 			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
+			float inv_pdf_hemisphere_sample = DOUBLEPI;
+
 
 			vec3 shadow_ray_direction = random_point - current_ray->intersection_point;
 			float distance_sqared = dot(shadow_ray_direction, shadow_ray_direction);
@@ -358,7 +340,7 @@ __global__ void Shade(Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray*
 				float solid_angle = (area * (ln_dot_l)) / distance_sqared;
 
 				float pdf1 = 1 / solid_angle;
-				float pdf2 = 1 / DOUBLEPI;
+				float pdf2 = 1 / inv_pdf_hemisphere_sample;
 
 				float combined_pdf = ((pdf1 / (pdf1 + pdf2))*pdf1) + ((pdf2 / (pdf1 + pdf2)) * pdf2);
 
@@ -368,9 +350,7 @@ __global__ void Shade(Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray*
 				shadow_ray_buffer[shadow_index] = Ray(shadow_ray_origin, shadow_ray_direction, current_ray->pixel_index, shadow_colour);
 				shadow_ray_buffer[shadow_index].isShadow = true;
 			}
-
-			float inv_PDF = DOUBLEPI;
-			vec3 addition = inv_PDF * BRDF * (dot(current_ray->reflected_direction, normal));
+			vec3 addition = inv_pdf_hemisphere_sample * BRDF * (dot(current_ray->reflected_direction, normal));
 			current_ray->cumulative_colour *= addition;
 			break;
 		default:

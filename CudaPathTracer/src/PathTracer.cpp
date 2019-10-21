@@ -36,17 +36,20 @@ void inline PathTracer::CalcImageParameters(){
 	float topLeftx = ((2 * (0 / SCRWIDTH)) - 1) * tan((this->camera.fov / 2) * (PI / 180)) * aspectRatio;
 	float topLefty = (1 - (2 * (0 / SCRHEIGHT))) * tan((this->camera.fov / 2) * (PI / 180));
 	vec4 topLeft = vec4(topLeftx, topLefty, -1, 1);
-	topLeft = topLeft * this->camera.c_matrix;
+	topLeft = this->camera.c_matrix * topLeft;
+	topLeft += vec4(this->camera.translation, 1);
 
 	float topRightx = ((2 * (SCRWIDTH / SCRWIDTH)) - 1) * tan((this->camera.fov / 2) * (PI / 180)) * aspectRatio;
 	float topRighty = (1 - (2 * (0 / SCRHEIGHT))) * tan((this->camera.fov / 2) * (PI / 180));
 	vec4 topRight = vec4(topRightx, topRighty, -1, 1);
-	topRight = topRight * this->camera.c_matrix;
+	topRight = this->camera.c_matrix * topRight;
+	topRight += vec4(this->camera.translation, 1);
 
 	float bottomLeftx = ((2 * (0 / SCRWIDTH)) - 1) * tan((this->camera.fov / 2) * (PI / 180)) * aspectRatio;
 	float bottomLefty = (1 - (2 * (SCRHEIGHT / SCRHEIGHT))) * tan((this->camera.fov / 2) * (PI / 180));
 	vec4 bottomLeft = vec4(bottomLeftx, bottomLefty, -1, 1);
-	bottomLeft = bottomLeft * this->camera.c_matrix;
+	bottomLeft = this->camera.c_matrix * bottomLeft;
+	bottomLeft += vec4(this->camera.translation, 1);
 
 	//calculate x,y,x step size for pixel interpolation
 	vec3 stepH = vec3(topRight.x - topLeft.x, topRight.y - topLeft.y, topRight.z - topLeft.z);
@@ -69,12 +72,18 @@ void PathTracer::Trace(Renderer* cuda_interop, vec4* frame_buffer){
 }
 
 void PathTracer::TranslateCamera(vec3 direction, float delta_time){
-	mat4 translate_matrix = glm::translate(mat4(1.0f), direction * this->camera.translation_speed * delta_time);
-	this->camera.c_matrix = this->camera.c_matrix * translate_matrix;
-	this->camera.c_position = translate_matrix * this->camera.c_position;
+	direction = this->camera.c_matrix * vec4(direction, 1);
+	direction = normalize(direction);
+	this->camera.translation += direction * this->camera.translation_speed * delta_time;
+	this->camera.c_position += direction * this->camera.translation_speed * delta_time;
 }
 
-void PathTracer::RotateCamera(vec3 direction, float delta_time){
-	mat4 rotate_matrix = glm::rotate(mat4(1.0f), this->camera.rotation_theta * delta_time, direction);
-	this->camera.c_matrix =  this->camera.c_matrix * rotate_matrix;
+void PathTracer::RotateCameraX(float delta_time){
+	mat4 rotate_matrix = glm::rotate(mat4(1.0f), this->camera.rotation_theta * delta_time, vec3(0, 1, 0));
+	this->camera.c_matrix = rotate_matrix * this->camera.c_matrix;
+}
+
+void PathTracer::RotateCameraY(float delta_time){
+	mat4 rotate_matrix = glm::rotate(mat4(1.0f), this->camera.rotation_theta * delta_time, vec3(1, 0, 0));
+	this->camera.c_matrix = this->camera.c_matrix * rotate_matrix;
 }

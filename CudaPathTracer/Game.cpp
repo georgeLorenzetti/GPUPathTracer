@@ -14,12 +14,22 @@ bool processInput(GLFWwindow* window, PathTracer* path_tracer, float delta_time,
 		glfwSetWindowShouldClose(window, true);
 
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-		path_tracer->TranslateCamera(glm::vec3(0.0f, 0.0f, -1.0f), delta_time/1000.0f);
+		path_tracer->TranslateCamera(glm::vec3(0.0f, 0.0f, 1.0f), -delta_time/1000.0f);
 		new_frame = true;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
 		path_tracer->TranslateCamera(glm::vec3(0.0f, 0.0f, 1.0f), delta_time / 1000.0f);
+		new_frame = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+		path_tracer->TranslateCamera(glm::vec3(1.0f, 0.0f, 0.0f), -delta_time / 1000.0f);
+		new_frame = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+		path_tracer->TranslateCamera(glm::vec3(1.0f, 0.0f, 0.0f), delta_time / 1000.0f);
 		new_frame = true;
 	}
 
@@ -29,23 +39,14 @@ bool processInput(GLFWwindow* window, PathTracer* path_tracer, float delta_time,
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){
-		path_tracer->TranslateCamera(glm::vec3(0.0f, -1.0f, 0.0f), delta_time / 1000.0f);
+		path_tracer->TranslateCamera(glm::vec3(0.0f, 1.0f, 0.0f), -delta_time / 1000.0f);
 		new_frame = true;
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
-		path_tracer->RotateCamera(glm::vec3(1.0f, 0.0f, 0.0f), delta_time / -1000.0f);
-		new_frame = true;
-	}
-
-	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-		path_tracer->RotateCamera(glm::vec3(-1.0f, 0.0f, 0.0f), delta_time / 1000.0f);
-		new_frame = true;
-	}
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)){
-		printf("%f %f \n", delta_x, delta_y);
-		path_tracer->RotateCamera(glm::vec3(0.0f, 1.0f, 0.0f), delta_x * delta_time / 1000.0f);
-		path_tracer->RotateCamera(glm::vec3(1.0f, 0.0f, 0.0f), delta_y * delta_time / 1000.0f);
+		path_tracer->RotateCameraX( delta_x * delta_time / 1000.0f);
+		path_tracer->RotateCameraY( delta_y * delta_time / 1000.0f);
+
 		new_frame = true;
 	}
 
