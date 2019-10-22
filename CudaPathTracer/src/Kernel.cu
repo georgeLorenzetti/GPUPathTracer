@@ -36,6 +36,7 @@ __device__ float random_float(unsigned int& seed){
 	return float(random_int(seed)) * 2.3283064365387e-10f;
 }
 
+//take cosine weighted random sample from hemisphere
 __device__ vec3 cosineWeightedSample(vec3 normal, unsigned int& seed) {
 	float rand1 = random_float(seed);
 	float rand2 = random_float(seed);
@@ -242,7 +243,7 @@ __global__ void Extend(Scene scene, Ray* ray_buffer, int ray_buffer_size, int tr
 			if (dot_product > 0.0f){
 				normal *= -1.0f;
 			}
-			ray_buffer[index].reflected_direction = normalize(sampleHemisphere(normal, seed));
+			ray_buffer[index].reflected_direction = normalize(cosineWeightedSample(normal, seed));
 			ray_buffer[index].intersection_index = i;
 
 			float max_distance = MAXDISTANCE;
@@ -312,19 +313,18 @@ __global__ void Shade(Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray*
 				counter++;
 			}
 
-			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
-			float inv_pdf_hemisphere_sample = DOUBLEPI;
+			vec3 normal = scene.t_normals_gpu[current_ray->intersection_index];
+			if (dot(current_ray->reflected_direction, normal) < 0.0f) {
+				normal *= -1.0f;
+			}
 
+			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
+			float inv_pdf_hemisphere_sample = PI / dot(current_ray->reflected_direction, normal);
 
 			vec3 shadow_ray_direction = random_point - current_ray->intersection_point;
 			float distance_sqared = dot(shadow_ray_direction, shadow_ray_direction);
 			shadow_ray_direction = normalize(shadow_ray_direction);
 			vec3 shadow_ray_origin = current_ray->intersection_point + (0.0001f * shadow_ray_direction);
-
-			vec3 normal = scene.t_normals_gpu[current_ray->intersection_index];
-			if (dot(current_ray->reflected_direction, normal) < 0.0f){
-				normal *= -1.0f;
-			}
 
 			vec3 light_normal = scene.t_normals_gpu[scene.tri_count - counter];
 			if (dot(-1.0f * shadow_ray_direction, light_normal) < 0.0f){
@@ -413,7 +413,7 @@ __global__ void ShadeReference(Scene scene, Ray* ray_buffer, Ray* ray_buffer_nex
 				normal *= -1.0f;
 			}
 			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
-			float inv_PDF = DOUBLEPI;
+			float inv_PDF = PI / dot(current_ray->reflected_direction, normal);
 
 			vec3 addition = inv_PDF * BRDF * (dot(current_ray->reflected_direction, normal));
 			current_ray->cumulative_colour *= addition;
