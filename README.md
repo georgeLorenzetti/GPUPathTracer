@@ -3,12 +3,13 @@
 A Wavefront path tracer written in C++/CUDA.
 
 Current Features:
- - Next Event Estimation
+ - Next event estimation
  - Lambertian materials
+ - Cosine weighted hemisphere sampling
+
 
 To Do:
  - Specular/Refractive/Frensel materials
- - Cosine weighted importance sampling
  - Russian Roulette termination
  - BVH Acceleration structue/.obj loading
  - Texturing
