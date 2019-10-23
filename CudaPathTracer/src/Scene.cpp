@@ -1,4 +1,6 @@
 #include <precomp.h>
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
 
 using namespace glm;
 
@@ -214,13 +216,144 @@ void Scene::CornellSetup(){
 		this->light_areas.push_back(area);
 		this->total_light_area += area;
 	}
-	//printf("%f \n", total_light_area);
+}
+
+void Scene::DeerSceneSetup() {
+	this->bg_colour = vec3(66.0f / 255.0f, 134.0f / 255.0f, 244.0f / 255.0f);
+	this->tri_count = 0;
+
+	this->t_vertices = std::vector<vec3>();
+	this->t_indices = std::vector<int>();
+	this->t_normals = std::vector<vec3>();
+	this->t_mats = std::vector<Material>();
+	LoadObject("assets/deer.obj");
+
+	for (int i = 0; i < this->tri_count; i++) {
+		this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+	}
+
+	//floor
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.0f, -1.0f, -2.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.0f, -1.0f, 0.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f)));
+	this->tri_count++;
+
+	//lights
+	this->light_tri_count = 0;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f, -5.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f, -1.5f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, -5.0f));
+	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
+	this->light_tri_count++;
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, -5.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f, -1.5f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, -1.5f));
+	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
+	this->light_tri_count++;
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f,  5.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
+	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
+	this->light_tri_count++;
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 1.5f));
+	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
+	this->light_tri_count++;
+	this->tri_count++;
+
+	this->t_normals = std::vector<vec3>();
+	for (int i = 0; i < t_mats.size(); i++) {
+		vec3 vector1 = (t_vertices[t_indices[i * 3 + 1]] - t_vertices[t_indices[i * 3]]);
+		vec3 vector2 = (t_vertices[t_indices[i * 3 + 2]] - t_vertices[t_indices[i * 3]]);
+		vec3 normal = cross(vector1, vector2);
+		normal = normalize(normal);
+		normal *= -1;
+		t_normals.push_back(normal);
+	}
+
+	this->light_areas = std::vector<float>();
+	this->total_light_area = 0;
+	for (int i = 1; i <= light_tri_count; i++) {
+		vec3 va = t_vertices[t_indices[t_mats.size() * 3 - (i * 3)]];
+		vec3 vb = t_vertices[t_indices[t_mats.size() * 3 - (i * 3) + 1]];
+		vec3 vc = t_vertices[t_indices[t_mats.size() * 3 - (i * 3) + 2]];
+
+		vec3 ab = vb - va;
+		vec3 ac = vc - va;
+
+		vec3 cr = cross(ab, ac);
+		float area = length(cr) * 0.5f;
+		this->light_areas.push_back(area);
+		this->total_light_area += area;
+	}
+
+}
+
+void Scene::LoadObject(std::string filename) {
+	tinyobj::attrib_t attribute;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+	std::string path = filename;
+
+	if (!tinyobj::LoadObj(&attribute, &shapes, &materials, &warn, &err, path.c_str())) {
+		throw std::runtime_error(warn + err);
+	}
+
+	std::vector<tinyobj::index_t> ind = shapes[0].mesh.indices;
+	for (int i = 0; i < ind.size(); i++) {
+		this->t_indices.push_back(ind[i].vertex_index);
+	}
+
+	this->tri_count = ind.size() / 3;
+	for (int i = 0; i < attribute.vertices.size() / 3; i++) {
+		tinyobj::real_t vx = attribute.vertices[3 * i + 0] * 0.001f;
+		tinyobj::real_t vy = attribute.vertices[3 * i + 1] * 0.001f;
+		tinyobj::real_t vz = attribute.vertices[3 * i + 2] * 0.001f;
+
+		vy -= 1.0f;
+		vz -= 1.0f;
+		this->t_vertices.push_back(vec3((float)vx, (float)vy, (float)vz));
+	}
 }
 
 void Scene::Init(){
-	CornellSetup();
+	DeerSceneSetup();
+
 	this->tri_count = this->t_mats.size();
-	std::cout << tri_count << std::endl;
 
 	cudaAssert(Malloc(&(this->t_vertices_gpu), this->t_vertices.size() * sizeof(vec3)));
 	cudaAssert(Malloc(&(this->t_indices_gpu), this->t_indices.size() * sizeof(int)));

@@ -14,6 +14,7 @@ public:
 
 private:
 	KernelParams kernel_params;
+	BVH bvh;
 	Camera camera;
 	int frame;
 };

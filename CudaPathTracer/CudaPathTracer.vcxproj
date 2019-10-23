@@ -140,6 +140,7 @@
     <ClCompile Include="src\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\BVH.cuh" />
     <ClInclude Include="include\Camera.h" />
     <ClInclude Include="include\CudaAssert.h" />
     <ClInclude Include="include\Definitions.h" />
@@ -150,12 +151,14 @@
     <ClInclude Include="include\PathTracer.h" />
     <ClInclude Include="include\Scene.h" />
     <ClInclude Include="include\Material.cuh" />
+    <ClInclude Include="include\tiny_obj_loader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="glew32.dll" />
     <None Include="glfw3.dll" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="src\BVH.cu" />
     <CudaCompile Include="src\Kernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

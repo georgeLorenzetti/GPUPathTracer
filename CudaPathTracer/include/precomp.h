@@ -10,9 +10,7 @@
 #define MAXBOUNCE 5
 #define BUFFERSIZE (SCRWIDTH*SCRHEIGHT)
 #define MAXDISTANCE 1e20f;
-
-
-//variables
+#define SCENE 0;
 
 //Dependancy headers
 #include <GL/glew.h>
@@ -20,6 +18,7 @@
 #include <gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
+
 // C++ headers
 #include <algorithm>
 #include <chrono>
@@ -43,6 +42,7 @@
 #include <device_launch_parameters.h>
 #include <CudaAssert.h>
 
+#include <BVH.cuh>
 #include <Game.h>
 #include <Material.cuh>
 #include <Scene.h>
