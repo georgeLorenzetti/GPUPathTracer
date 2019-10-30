@@ -233,23 +233,23 @@ void Scene::DeerSceneSetup() {
 	}
 
 	//floor
-	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.0f, -1.0f, -2.0f));
-	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
-	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
-	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
-	this->tri_count++;
+	//this->t_indices.push_back(this->t_vertices.size());
+	//this->t_vertices.push_back(vec3(1.0f, -1.0f, -2.0f));
+	//this->t_indices.push_back(this->t_vertices.size());
+	//this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	//this->t_indices.push_back(this->t_vertices.size());
+	//this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	//this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
+	//this->tri_count++;
 
-	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
-	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.0f, -1.0f, 0.0f));
-	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
-	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f)));
-	this->tri_count++;
+	//this->t_indices.push_back(this->t_vertices.size());
+	//this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	//this->t_indices.push_back(this->t_vertices.size());
+	//this->t_vertices.push_back(vec3(-1.0f, -1.0f, 0.0f));
+	//this->t_indices.push_back(this->t_vertices.size());
+	//this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	//this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f)));
+	//this->tri_count++;
 
 	//lights
 	this->light_tri_count = 0;
@@ -366,4 +366,40 @@ void Scene::Init(){
 	cudaAssert(Memcpy(this->t_mats_gpu, this->t_mats.data(), this->t_mats.size() * sizeof(Material), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->t_normals_gpu, this->t_normals.data(), this->t_normals.size() * sizeof(vec3), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->light_areas_gpu, this->light_areas.data(), this->light_areas.size() * sizeof(float), cudaMemcpyHostToDevice));
+}
+
+void Scene::ColourBVH(BVHNode* node) {
+	
+	if (node->is_leaf) {
+		vec3 colour = vec3(static_cast <float> (rand()) / static_cast <float> (RAND_MAX), static_cast <float> (rand()) / static_cast <float> (RAND_MAX), static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+		for (int i = 0; i < node->leaf_triangles.size(); i++) {
+			t_mats[node->leaf_triangles[i]].colour = colour;
+		}
+		return;
+	}
+
+	ColourBVH(node->left);
+	ColourBVH(node->right);
+}
+
+void Scene::ColourBVH2(BVH* bvh, unsigned int current_node, unsigned int current_tri) {
+	std::cout << " current node " << (bvh->cf_bvh[current_node].u.leaf.count) << " " << (bvh->cf_bvh[current_node].u.leaf.count & 0x7fffffff) << std::endl;
+	if ((bvh->cf_bvh[current_node].u.leaf.count & 0x80000000)) {
+		vec3 colour = vec3(static_cast <float> (rand()) / static_cast <float> (RAND_MAX), static_cast <float> (rand()) / static_cast <float> (RAND_MAX), static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+		unsigned int count = (bvh->cf_bvh[current_node].u.leaf.count & 0x7fffffff);
+		unsigned int first = bvh->cf_bvh[current_node].u.leaf.index_first_tri;
+		for (int i = first; i < first + count; i++) {
+			t_mats[bvh->triangle_indices[i]].colour = colour;
+
+		}
+		return;
+	}
+
+	ColourBVH2(bvh, bvh->cf_bvh[current_node].u.inner.index_left, current_tri);
+	ColourBVH2(bvh, bvh->cf_bvh[current_node].u.inner.index_right, current_tri);
+
+}
+
+void Scene::UpdateMatsGPU() {
+	cudaAssert(Memcpy(this->t_mats_gpu, this->t_mats.data(), this->t_mats.size() * sizeof(Material), cudaMemcpyHostToDevice));
 }

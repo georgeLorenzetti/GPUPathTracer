@@ -6,6 +6,9 @@ class Scene{
 		void CornellSetup();
 		void DeerSceneSetup();
 		void LoadObject(std::string filename);
+		void ColourBVH(BVHNode* node);
+		void ColourBVH2(BVH* bvh, unsigned int current_node, unsigned int current_tri);
+		void UpdateMatsGPU();
 
 		//pointers to vectors for CUDA
 		Material* t_mats_gpu;

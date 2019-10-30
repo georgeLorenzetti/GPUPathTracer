@@ -76,4 +76,4 @@ struct KernelParams{
 };
 
 cudaError print(cudaArray_const_t array, glm::vec4* frame_buffer, KernelParams & kernel_params, int ray_buffer_size, int frame);
-cudaError launch_kernels(cudaArray_const_t array, glm::vec4* frame_buffer, KernelParams & kernel_params, int ray_buffer_size, int frame);
+cudaError launch_kernels(cudaArray_const_t array, glm::vec4* frame_buffer, KernelParams & kernel_params, BVH* bvh, int ray_buffer_size, int frame);

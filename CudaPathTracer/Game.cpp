@@ -76,11 +76,13 @@ int main(){
 	// glfw window creation
 	// --------------------
 	GLFWwindow* window = glfwCreateWindow(SCRWIDTH, SCRHEIGHT, "CudaTracer", NULL, NULL);
+
 	if (window == NULL){
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
+	
 	glfwMakeContextCurrent(window);
 	glfwShowWindow(window);
 	glewExperimental = GL_TRUE;
@@ -92,6 +94,7 @@ int main(){
 	}
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSwapInterval(0);
 
 	// glad: load all OpenGL function pointers
 	// ---------------------------------------

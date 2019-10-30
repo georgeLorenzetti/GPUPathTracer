@@ -14,8 +14,12 @@ PathTracer::PathTracer(int cores){
 	this->kernel_params.sm_cores = cores;
 	this->kernel_params.scene.Init();
 
-	this->bvh = BVH(this->kernel_params.scene.t_vertices_gpu, this->kernel_params.scene.t_normals_gpu, this->kernel_params.scene.t_indices_gpu);
-	this->bvh.ConstructBVH(this->kernel_params.scene.t_vertices, this->kernel_params.scene.t_indices, this->kernel_params.scene.tri_count);
+	this->bvh = new BVH();
+	this->bvh->ConstructBVH(this->kernel_params.scene.t_vertices, this->kernel_params.scene.t_indices, this->kernel_params.scene.tri_count);
+	this->bvh->ConstructCacheFriendly(this->kernel_params.scene.tri_count);
+	//this->kernel_params.scene.ColourBVH(this->bvh->root_node);
+	//this->kernel_params.scene.UpdateMatsGPU();
+
 	//allocate memory for kernel parameters
 	cudaAssert(DeviceSynchronize());
 
@@ -68,7 +72,7 @@ void inline PathTracer::CalcImageParameters(){
 
 void PathTracer::Trace(Renderer* cuda_interop, vec4* frame_buffer){
 	CalcImageParameters();
-	launch_kernels(cuda_interop->cuda_array, frame_buffer, kernel_params, BUFFERSIZE, frame);
+	launch_kernels(cuda_interop->cuda_array, frame_buffer, kernel_params, bvh, BUFFERSIZE, frame);
 
 	frame++;
 }
