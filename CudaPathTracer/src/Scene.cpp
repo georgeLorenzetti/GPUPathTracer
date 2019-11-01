@@ -226,10 +226,10 @@ void Scene::DeerSceneSetup() {
 	this->t_indices = std::vector<int>();
 	this->t_normals = std::vector<vec3>();
 	this->t_mats = std::vector<Material>();
-	LoadObject("assets/deer.obj");
+	LoadObject("assets/dragon.obj");
 
 	for (int i = 0; i < this->tri_count; i++) {
-		this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 1.0f)));
+		this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 1.0f)));
 	}
 
 	//floor
@@ -340,9 +340,9 @@ void Scene::LoadObject(std::string filename) {
 
 	this->tri_count = ind.size() / 3;
 	for (int i = 0; i < attribute.vertices.size() / 3; i++) {
-		tinyobj::real_t vx = attribute.vertices[3 * i + 0] * 0.001f;
-		tinyobj::real_t vy = attribute.vertices[3 * i + 1] * 0.001f;
-		tinyobj::real_t vz = attribute.vertices[3 * i + 2] * 0.001f;
+		tinyobj::real_t vx = attribute.vertices[3 * i + 0] * 0.5f;
+		tinyobj::real_t vy = attribute.vertices[3 * i + 1] * 0.5f;
+		tinyobj::real_t vz = attribute.vertices[3 * i + 2] * 0.5f;
 
 		vy -= 1.0f;
 		vz -= 1.0f;
@@ -352,7 +352,7 @@ void Scene::LoadObject(std::string filename) {
 
 void Scene::Init(){
 	DeerSceneSetup();
-
+	//CornellSetup();
 	this->tri_count = this->t_mats.size();
 
 	cudaAssert(Malloc(&(this->t_vertices_gpu), this->t_vertices.size() * sizeof(vec3)));

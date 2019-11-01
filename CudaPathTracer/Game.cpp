@@ -155,15 +155,16 @@ int main(){
 		double delta_x = mouse_position_x - old_mouse_x;
 		double delta_y = mouse_position_y - old_mouse_y;
 
+		bool new_frame = processInput(window, &path_tracer, delta_time, delta_x, delta_y);
 		//process input
-		if (processInput(window, &path_tracer, delta_time, delta_x, delta_y)){
+		if (new_frame){
 			cudaAssert(Memset(frame_buffer, 0, SCRWIDTH * SCRHEIGHT * sizeof(glm::vec4)));
 		}
 		
 		//trace dem rays
 
 		if(frames >= 0){
-			path_tracer.Trace(&cuda_interop, frame_buffer);
+			path_tracer.Trace(&cuda_interop, frame_buffer, new_frame);
 		}
 
 		// render

@@ -130,6 +130,12 @@
       <AdditionalLibraryDirectories>$(CUDA_LIB_PATH);dependancies\glfw-3.3\lib-vc2019;dependancies\glew-2.1.0\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>cudart.lib;glfw3dll.lib;glfw3.lib;glew32.lib;glew32s.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CudaCompile>
+      <GPUDebugInfo>false</GPUDebugInfo>
+    </CudaCompile>
+    <CudaCompile>
+      <GenerateLineInfo>false</GenerateLineInfo>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Scene.cpp" />
@@ -160,6 +166,7 @@
   <ItemGroup>
     <CudaCompile Include="src\BVH.cu" />
     <CudaCompile Include="src\Kernel.cu" />
+    <CudaCompile Include="src\Kernel_FPS.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

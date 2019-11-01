@@ -6,7 +6,7 @@ class PathTracer{
 public:
 	PathTracer(int cores);
 	void CalcImageParameters();
-	void Trace(Renderer* cuda_interop, glm::vec4* frame_buffer);
+	void Trace(Renderer* cuda_interop, glm::vec4* frame_buffer, bool n);
 
 	void TranslateCamera(glm::vec3 direction, float delta_time);
 	void RotateCameraX(float delta_time);

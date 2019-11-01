@@ -1,5 +1,6 @@
-#pragma once
 #include <precomp.h>
+#ifndef FPS_MODE
+#pragma once
 #include <surface_functions.h>
 using namespace glm;
 
@@ -301,14 +302,16 @@ __global__ void print_helper(Ray* ray_buffer){
 /**MAIN KERNELS**/
 
 //reset kernel variables
-__global__ void SetGlobalVariables(int ray_buffer_size){
+__global__ void SetGlobalVariables(int ray_buffer_size, bool first){
 	counter_primary = 0;
 	counter_extend = 0;
 	counter_shade = 0;
 	counter_connect = 0;
 	connect_ray_index = 0;
 	debug_count = 0;
-	count_shadow_ray = 0;
+
+	if(first)
+		count_shadow_ray = 0;
 }
 
 __global__ void SetupNextIteration(int* m_a_p){
@@ -327,7 +330,6 @@ __global__ void draw_frame(vec4* frame_buffer){
 	const int index = x + (y * SCRWIDTH);
 	vec3 temp_colour = vec3();
 
-	atomicAdd(&(frame_buffer[index].a), 1.0f);
 
 	//sample counter is stored in .a 
 	temp_colour.r = frame_buffer[index].r / frame_buffer[index].a;
@@ -341,7 +343,7 @@ __global__ void draw_frame(vec4* frame_buffer){
 }
 
 //genereate kernel
-__global__ void GeneratePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 stepV, vec3 c_position, Ray* ray_buffer, int ray_buffer_size, int frame){
+__global__ void GeneratePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 stepV, vec3 c_position, Ray* ray_buffer, int ray_buffer_size, int frame, vec4* frame_buffer){
 
 	while (true){
 		int index = atomicAdd(&counter_primary, 1);
@@ -360,6 +362,7 @@ __global__ void GeneratePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 
 		rayDirection = normalize(rayDirection);
 
 		ray_buffer[index] = Ray(rayOrigin, rayDirection, x + (y * SCRWIDTH));
+		atomicAdd(&(frame_buffer[index].a), 1.0f);
 		atomicAdd(&active_paths_gpu, 1);
 	}
 }
@@ -373,7 +376,7 @@ __global__ void Extend(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_lis
 			return;
 		}
 
-#if 1
+#if 0
 		traverse_BHV(scene.t_vertices_gpu, scene.t_normals_gpu, scene.t_indices_gpu, &ray_buffer[index], bvh, bvh_tri_list, seed);
 #else
 		//no acceleration structure yet
@@ -573,9 +576,6 @@ __global__ void ShadeReference(Scene scene, Ray* ray_buffer, Ray* ray_buffer_nex
 			vec3 BRDF = vec3(current_ray->intersected_material.colour.r * INVPI, current_ray->intersected_material.colour.g * INVPI, current_ray->intersected_material.colour.b * INVPI);
 			float inv_PDF = PI / dot(current_ray->reflected_direction, normal);
 
-			if (index == 58209) {
-				printf("%f %f %f | %f %f %f | %f %f %f \n", current_ray->direction.x, current_ray->direction.y, current_ray->direction.z, current_ray->reflected_direction.x, current_ray->reflected_direction.y, current_ray->reflected_direction.z, normal.x, normal.y, normal.z);
-			}
 			vec3 addition = inv_PDF * BRDF * dot_product;
 			current_ray->cumulative_colour *= addition;
 			break;
@@ -615,7 +615,7 @@ __global__ void Connect(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_li
 
 		Ray* current_ray = &shadow_ray_buffer[index];
 
-#if 1 
+#if 0
 		shadow_traverse_BHV(scene.t_vertices_gpu, scene.t_normals_gpu, scene.t_mats_gpu, scene.t_indices_gpu, &shadow_ray_buffer[index], bvh, bvh_tri_list);
 #else
 		for (int i = 0; i < triangle_count; i++){
@@ -649,27 +649,26 @@ __global__ void Connect(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_li
 __global__ void g_singleAnswer(int* answer){ *answer = 2; }
 
 //Launcher function
-cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelParams & kernel_params, BVH* bvh, int ray_buffer_size, int frame){
+cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelParams & kernel_params, BVH* bvh, int ray_buffer_size, int frame, bool new_frame){
 	
 	cudaError err = cudaAssert(BindSurfaceToArray(screen, array));
 	if (err){
 		return err;
 	}
 
-
-
 	int active_paths = BUFFERSIZE;
 	cudaAssert(Memset(kernel_params.malloc_active_paths, 0, sizeof(int)));
 	
-	GeneratePrimaryRays << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.top_left, kernel_params.step_h, kernel_params.step_v, kernel_params.c_position, kernel_params.ray_buffer, ray_buffer_size, frame);
+	GeneratePrimaryRays << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.top_left, kernel_params.step_h, kernel_params.step_v, kernel_params.c_position, kernel_params.ray_buffer, ray_buffer_size, frame, frame_buffer);
 	
+	bool first = true;
 	while(active_paths > 0){
-		SetGlobalVariables << <1, 1 >> > (ray_buffer_size);	
+		SetGlobalVariables << <1, 1 >> > (ray_buffer_size, first);
+		first = false;
 		Extend << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, bvh->cf_bvh_gpu, bvh->triangle_indices_gpu, kernel_params.ray_buffer, ray_buffer_size, kernel_params.scene.tri_count, frame);
-#if 1		
+#if 0	
 		Shade << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.shadow_ray_buffer, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, kernel_params.scene.tri_count, frame, frame_buffer);
 		//print_helper << <1, 1 >> > (kernel_params.ray_buffer);
-		Connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, bvh->cf_bvh_gpu, bvh->triangle_indices_gpu, kernel_params.shadow_ray_buffer, kernel_params.scene.tri_count, frame_buffer);
 #else
 		ShadeReference << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, frame_buffer);
 #endif
@@ -680,6 +679,7 @@ cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelPar
 		std::swap(kernel_params.ray_buffer, kernel_params.ray_buffer_next);
 	}
 
+	//Connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, bvh->cf_bvh_gpu, bvh->triangle_indices_gpu, kernel_params.shadow_ray_buffer, kernel_params.scene.tri_count, frame_buffer);
 	dim3 threads = dim3(16, 16);
  	dim3 blocks = dim3((SCRWIDTH + threads.x - 1) / threads.x, (SCRHEIGHT + threads.y - 1) / threads.y);
 	draw_frame << <blocks, threads >> > (frame_buffer);
@@ -688,3 +688,4 @@ cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer,  KernelPar
 	cudaError c = cudaError();
 	return c;
 }
+#endif

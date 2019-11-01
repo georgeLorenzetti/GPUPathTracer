@@ -75,5 +75,6 @@
   <ItemGroup>
     <CudaCompile Include="src\Kernel.cu" />
     <CudaCompile Include="src\BVH.cu" />
+    <CudaCompile Include="src\Kernel_FPS.cu" />
   </ItemGroup>
 </Project>

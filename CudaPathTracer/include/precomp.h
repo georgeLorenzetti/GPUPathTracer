@@ -12,6 +12,9 @@
 #define MAXDISTANCE 1e20f;
 #define SCENE 0;
 
+#define FPS_MODE
+//#define USE_REFERENCE
+
 //Dependancy headers
 #include <GL/glew.h>
 #include <glm.hpp>
