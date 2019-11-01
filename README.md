@@ -6,7 +6,7 @@ Current Features:
  - Next event estimation
  - Lambertian materials
  - Cosine weighted hemisphere sampling
- - BVH Acceleration structue/.obj loading
+ - BVH Acceleration structure/.obj loading
 
 To Do:
  - Specular/Refractive/Frensel materials
