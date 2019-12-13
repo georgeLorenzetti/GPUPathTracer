@@ -9,7 +9,7 @@ Current Features:
  - BVH Acceleration structure/.obj loading
 
 To Do:
- - Specular/Refractive/Frensel materials
+ - More BRDFs
  - Russian Roulette termination
  - Texturing
  - Skybox
