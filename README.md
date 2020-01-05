@@ -6,7 +6,7 @@ Current Features:
  - Next event estimation
  - Lambertian materials
  - Cosine weighted hemisphere sampling
- - BVH Acceleration structure/.obj loading
+ - MBVH acceleration structure with 32 byte nodes.
 
 To Do:
  - More BRDFs
