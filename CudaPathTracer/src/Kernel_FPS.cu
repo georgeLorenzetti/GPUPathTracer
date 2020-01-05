@@ -15,6 +15,8 @@ __device__ int connect_ray_index = 0;
 
 //debug variables
 __device__ int debug_count = 0;
+__device__ Ray* test_ray;
+__device__ bool set = false;
 
 //draw variables
 surface<void, cudaSurfaceType2D> screen;
@@ -35,7 +37,7 @@ __device__ float random_float(unsigned int& seed) {
 	return float(random_int(seed)) * 2.3283064365387e-10f;
 }
 
-__device__ vec3 cosineWeightedSample(vec3 normal, unsigned int& seed) {
+__device__ vec3 cosineWeightedSample(const vec3& normal, unsigned int& seed) {
 	float rand1 = random_float(seed);
 	float rand2 = random_float(seed);
 
@@ -69,7 +71,7 @@ __device__ vec3 cosineWeightedSample(vec3 normal, unsigned int& seed) {
 }
 
 //take uniform random sample from hemisphere
-__device__ vec3 sampleHemisphere(vec3 normal, unsigned int& seed) {
+__device__ vec3 sampleHemisphere(const vec3& normal, unsigned int& seed) {
 	float rand1 = random_float(seed);
 	float rand2 = random_float(seed);
 
@@ -100,7 +102,7 @@ __device__ vec3 sampleHemisphere(vec3 normal, unsigned int& seed) {
 }
 
 //triangle intersection
-__device__ bool intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& intersection_point, float& t) {
+__device__ bool intersect_triangle(const Ray& ray, const vec3& v0, const vec3& v1, const vec3& v2, vec3& intersection_point, float& t) {
 	const float epsilon = 0.0000001;
 	vec3 edge1, edge2, h, s, q;
 	float a, f, u, v;
@@ -132,7 +134,7 @@ __device__ bool intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& int
 		return false;
 }
 
-__device__ bool intersect_AABB(vec3 origin, vec3 direction_inverse, vec3 aabb_min, vec3 aabb_max) {
+__device__ bool intersect_AABB(const vec3& origin, const vec3& direction_inverse, const vec3& aabb_min, const vec3& aabb_max) {
 	vec3 t1 = (aabb_min - origin) * direction_inverse;
 	vec3 t2 = (aabb_max - origin) * direction_inverse;
 
@@ -145,7 +147,57 @@ __device__ bool intersect_AABB(vec3 origin, vec3 direction_inverse, vec3 aabb_mi
 	return (tmax >= 0.0f && tmin < tmax);
 }
 
-__device__ bool shadow_traverse_BHV(vec3* t_vertices_gpu, vec3* t_normals_gpu, Material* t_mats_gpu, int* t_indices_gpu, Ray* ray, BVHNode_CacheFriendly* bvh, int* bvh_tri_list) {
+__device__ int* intersect_MBVH_node(const vec3& origin, const vec3& direction_inverse, const float& t, 
+								    const vec4& bounds_min_x, const vec4& bounds_max_x, 
+								    const vec4& bounds_min_y, const vec4& bounds_max_y,
+								    const vec4& bounds_min_z, const vec4& bounds_max_z,
+								    bvec4& result) {
+
+	union {vec4 t_min; int t_min_i[4];};
+
+	vec4 t1 = (bounds_min_x- origin.x) * direction_inverse.x;
+	vec4 t2 = (bounds_max_x - origin.x) * direction_inverse.x;
+
+	t_min = glm::min(t1, t2);
+	vec4 t_max = glm::max(t1, t2);
+
+	t1 = (bounds_min_y - origin.y) * direction_inverse.y;
+	t2 = (bounds_max_y - origin.y) * direction_inverse.y;
+
+	t_min = glm::max(t_min, glm::min(t1, t2));
+	t_max = glm::min(t_max, glm::max(t1, t2));
+
+	t1 = (bounds_min_z - origin.z) * direction_inverse.z;
+	t2 = (bounds_max_z - origin.z) * direction_inverse.z;
+
+	t_min = glm::max(t_min, glm::min(t1, t2));
+	t_max = glm::min(t_max, glm::max(t1, t2));
+
+	t_min_i[0] = ((t_min_i[0] & 0xFFFFFFFC) | 0b00);
+	t_min_i[1] = ((t_min_i[1] & 0xFFFFFFFC) | 0b01);
+	t_min_i[2] = ((t_min_i[2] & 0xFFFFFFFC) | 0b10);
+	t_min_i[3] = ((t_min_i[3] & 0xFFFFFFFC) | 0b11);
+
+	result[0] = (t_max[0] > 0.0f) && (t_min[0] <= t_max[0]) && (t_min[0] < t);
+	result[1] = (t_max[1] > 0.0f) && (t_min[1] <= t_max[1]) && (t_min[1] < t);
+	result[2] = (t_max[2] > 0.0f) && (t_min[2] <= t_max[2]) && (t_min[2] < t);
+	result[3] = (t_max[3] > 0.0f) && (t_min[3] <= t_max[3]) && (t_min[3] < t);
+
+	if (t_min[0] > t_min[1])
+		swap(t_min[0], t_min[1]);
+	if (t_min[2] > t_min[3])
+		swap(t_min[2], t_min[3]);
+	if (t_min[0] > t_min[2])
+		swap(t_min[0], t_min[2]);
+	if (t_min[1] > t_min[3])
+		swap(t_min[1], t_min[3]);
+	if (t_min[2] > t_min[3])
+		swap(t_min[2], t_min[3]);
+
+	return t_min_i;
+}
+
+__device__ bool shadow_traverse_BVH(const vec3* t_vertices_gpu, const vec3* t_normals_gpu, const Material* t_mats_gpu, int* t_indices_gpu, Ray* ray, BVHNode_CacheFriendly* bvh, int* bvh_tri_list) {
 
 	int best_index = -1;
 	float shortest_distance;
@@ -216,7 +268,7 @@ __device__ bool shadow_traverse_BHV(vec3* t_vertices_gpu, vec3* t_normals_gpu, M
 	return (best_index != -1);
 }
 
-__device__ bool traverse_BHV(vec3* t_vertices_gpu, vec3* t_normals_gpu, int* t_indices_gpu, Ray* ray, BVHNode_CacheFriendly* bvh, int* bvh_tri_list, unsigned int seed) {
+__device__ bool shadow_traverse_MBVH(const vec3* t_vertices_gpu, const vec3* t_normals_gpu, const Material* t_mats_gpu, int* t_indices_gpu, Ray* ray, MBVHNode_CacheFriendly* mbvh, int* mbvh_tri_list) {
 
 	int best_index = -1;
 	float shortest_distance;
@@ -237,6 +289,188 @@ __device__ bool traverse_BHV(vec3* t_vertices_gpu, vec3* t_normals_gpu, int* t_i
 	// while the stack is not empty
 	while (stack_index) {
 
+		//pop from stack
+		MBVHNode_CacheFriendly current_node = mbvh[access_stack[stack_index - 1]];
+		stack_index--;
+
+		if (!(current_node.u.leaf.count & 0x80000000)) { // if inner node
+
+			vec4 bounds_min_x = vec4(0.0f);
+			vec4 bounds_max_x = vec4(0.0f);
+			vec4 bounds_min_y = vec4(0.0f);
+			vec4 bounds_max_y = vec4(0.0f);
+			vec4 bounds_min_z = vec4(0.0f);
+			vec4 bounds_max_z = vec4(0.0f);
+
+			for (int i = 0; i < current_node.u.inner.child_count; i++) {
+				bounds_min_x[i] = mbvh[current_node.u.inner.child_index + i].bounds[0].x;
+				bounds_max_x[i] = mbvh[current_node.u.inner.child_index + i].bounds[1].x;
+
+				bounds_min_y[i] = mbvh[current_node.u.inner.child_index + i].bounds[0].y;
+				bounds_max_y[i] = mbvh[current_node.u.inner.child_index + i].bounds[1].y;
+
+				bounds_min_z[i] = mbvh[current_node.u.inner.child_index + i].bounds[0].z;
+				bounds_max_z[i] = mbvh[current_node.u.inner.child_index + i].bounds[1].z;
+			}
+			bvec4 result = bvec4();
+			int* t_min_i = intersect_MBVH_node(ray->origin, 1.0f / ray->direction, ray->t, bounds_min_x, bounds_max_x, bounds_min_y, bounds_max_y, bounds_min_z, bounds_max_z, result);
+			if (any(result)) {
+				for (int i = current_node.u.inner.child_count - 1; i >= 0; i--) { // reversed order, we want to check best nodes first
+					const int idx = (t_min_i[i] & 0b11);
+					if (result[i] == 1) {
+						access_stack[stack_index] =  current_node.u.inner.child_index + i;
+
+						stack_index++;
+						if (stack_index > 64) {
+							return false;
+						}
+					}
+				}
+			}
+		}
+		else { //else if leaf node
+			for (int i = current_node.u.leaf.index_first_tri; i < current_node.u.leaf.index_first_tri + (current_node.u.leaf.count & 0x7fffffff); i++) {
+				float current_t;
+				vec3 intersection_point;
+
+				bool intersected_something = intersect_triangle(*ray,
+					t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3]],
+					t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3 + 1]],
+					t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3 + 2]],
+					intersection_point,
+					current_t);
+
+				if (!intersected_something || current_t < 0 || current_t >= ray->t) {
+					continue;
+				}
+
+				ray->t = current_t;
+				ray->intersection_point = intersection_point;
+
+				vec3 normal = t_normals_gpu[mbvh_tri_list[i]];
+				float dot_product = dot(ray->direction, normal);
+				if (dot_product > 0.0f) {
+					normal *= -1.0f;
+				}
+
+				ray->t = current_t;
+				ray->intersected_material = t_mats_gpu[mbvh_tri_list[i]];
+			}
+		}
+
+	}
+	return (best_index != -1);
+}
+
+__device__ bool traverse_MBVH(vec3* t_vertices_gpu, vec3* t_normals_gpu, int* t_indices_gpu, Ray* ray, MBVHNode_CacheFriendly* mbvh, int* mbvh_tri_list, unsigned int seed) {
+	int best_index = -1;
+	float shortest_distance;
+
+	//start from infinity
+	shortest_distance = FLT_MAX;
+
+	//create a stack of each ray
+	//the stack is just a fixed size array of indices to BVH nodes
+	int access_stack[64];
+
+	int stack_index = 0;
+	access_stack[0] = 0;
+	stack_index++;
+
+	vec3 intersection_point;
+
+	// while the stack is not empty
+	while (stack_index) {
+		//pop from stack
+		MBVHNode_CacheFriendly current_node = mbvh[access_stack[stack_index - 1]];
+		stack_index--;
+
+		if (!(current_node.u.leaf.count & 0x80000000)) { // if inner node
+			
+			vec4 bounds_min_x = vec4(0.0f);
+			vec4 bounds_max_x = vec4(0.0f);
+			vec4 bounds_min_y = vec4(0.0f);
+			vec4 bounds_max_y = vec4(0.0f);
+			vec4 bounds_min_z = vec4(0.0f);
+			vec4 bounds_max_z = vec4(0.0f);
+
+			for (int i = 0; i < current_node.u.inner.child_count; i++) {
+				bounds_min_x[i] = mbvh[current_node.u.inner.child_index + i].bounds[0].x;
+				bounds_max_x[i] = mbvh[current_node.u.inner.child_index + i].bounds[1].x;
+
+				bounds_min_y[i] = mbvh[current_node.u.inner.child_index + i].bounds[0].y;
+				bounds_max_y[i] = mbvh[current_node.u.inner.child_index + i].bounds[1].y;
+
+				bounds_min_z[i] = mbvh[current_node.u.inner.child_index + i].bounds[0].z;
+				bounds_max_z[i] = mbvh[current_node.u.inner.child_index + i].bounds[1].z;
+			}
+			bvec4 result = bvec4();
+			int* t_min_i = intersect_MBVH_node(ray->origin, 1.0f / ray->direction, ray->t, bounds_min_x, bounds_max_x, bounds_min_y, bounds_max_y, bounds_min_z, bounds_max_z, result);
+			if (any(result)) {
+				for (int i = current_node.u.inner.child_count - 1; i >= 0; i--) { // reversed order, we want to check best nodes first
+					const int idx = (t_min_i[i] & 0b11);
+					if (result[i] == 1) {
+						access_stack[stack_index] = current_node.u.inner.child_index + i;
+						stack_index++;
+						if (stack_index > 64) {
+							return false;
+						}
+					}
+				}
+			}
+		}else { //else if leaf node
+			for (int i = current_node.u.leaf.index_first_tri; i < current_node.u.leaf.index_first_tri + (current_node.u.leaf.count & 0x7fffffff); i++) {
+				float current_t;
+				vec3 intersection_point;
+
+				bool intersected_something = intersect_triangle(*ray,
+					t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3]],
+					t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3 + 1]],
+					t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3 + 2]],
+					intersection_point,
+					current_t);
+
+				if (!intersected_something || current_t < 0 || current_t >= ray->t) {
+					continue;
+				}
+
+				ray->t = current_t;
+				ray->intersection_point = intersection_point;
+
+				vec3 normal = t_normals_gpu[mbvh_tri_list[i]];
+				float dot_product = dot(ray->direction, normal);
+				if (dot_product > 0.0f) {
+					normal *= -1.0f;
+				}
+				ray->reflected_direction = normalize(cosineWeightedSample(normal, seed));
+				ray->intersection_index = mbvh_tri_list[i];
+				best_index = mbvh_tri_list[i];
+			}
+		}
+	}
+	return (best_index != -1);
+}
+
+__device__ bool traverse_BVH(vec3* t_vertices_gpu, vec3* t_normals_gpu, int* t_indices_gpu, Ray* ray, BVHNode_CacheFriendly* bvh, int* bvh_tri_list, unsigned int seed) {
+
+	int best_index = -1;
+	float shortest_distance;
+
+	// start from infinity
+	shortest_distance = FLT_MAX;
+
+	// create a stack for each ray
+	// the stack is just a fixed size array of indices to BVH nodes
+	int access_stack[64];
+
+	int stack_index = 0;
+	access_stack[0] = 0;
+	stack_index++;
+
+	vec3 intersection_point;
+
+	// while the stack is not empty
+	while (stack_index) {
 		//pop from stack
 		BVHNode_CacheFriendly current_node = bvh[access_stack[stack_index - 1]];
 		stack_index--;
@@ -295,10 +529,8 @@ __device__ void Draw(vec4& colour, int x, int y) {
 /**DEBUG KERNELS/FUNCTIONS**/
 
 //generic setup for printing things
-__global__ void print_helper(vec4* framebf) {
-	for (int i = 0; i < SCRHEIGHT * SCRWIDTH; i++) {
-		printf("%f %f %f \n", framebf[i].r, framebf[i].g, framebf[i].b);
-	}
+__global__ void print_helper(Scene scene, MBVHNode_CacheFriendly* node, int* mbvh_triangles, BVHNode_CacheFriendly* bnode, int* bvh_triangles, int frame) {
+
 }
 
 /**MAIN KERNELS**/
@@ -352,7 +584,7 @@ __global__ void draw_frame(vec4* frame_buffer) {
 }
 
 //genereate kernel
-__global__ void GeneratePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 stepV, vec3 c_position, Ray* ray_buffer, int ray_buffer_size, int frame, vec4* frame_buffer) {
+__global__ void GeneratePrimaryRays(const Scene& scene, const vec3 topLeft, const vec3 stepH, const vec3 stepV, const  vec3 c_position, Ray* ray_buffer, int ray_buffer_size, const int frame, vec4* frame_buffer) {
 
 	while (true) {
 		int index = atomicAdd(&counter_primary, 1);
@@ -379,7 +611,7 @@ __global__ void GeneratePrimaryRays(Scene scene, vec3 topLeft, vec3 stepH, vec3 
 }
 
 //extend kernel
-__global__ void Extend(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_list, Ray* ray_buffer, int ray_buffer_size, int triangle_count, int frame) {
+__global__ void Extend(const Scene scene, MBVHNode_CacheFriendly* mbvh, int* mbvh_tri_list, Ray* ray_buffer, int ray_buffer_size, int triangle_count, int frame) {
 	while (true) {
 		int index = atomicAdd(&counter_extend, 1);
 		unsigned int seed = (index + frame * 147565741) * 720898027 * index;
@@ -388,7 +620,7 @@ __global__ void Extend(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_lis
 		}
 
 #if 1
-		traverse_BHV(scene.t_vertices_gpu, scene.t_normals_gpu, scene.t_indices_gpu, &ray_buffer[index], bvh, bvh_tri_list, seed);
+		bool hit2 = traverse_MBVH(scene.t_vertices_gpu, scene.t_normals_gpu, scene.t_indices_gpu, &ray_buffer[index], mbvh, mbvh_tri_list, seed);
 #else
 		//no acceleration structure yet
 		for (int i = 0; i < triangle_count; i++) {
@@ -422,7 +654,7 @@ __global__ void Extend(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_lis
 }
 
 //shade kernel
-__global__ void Shade(Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, int triangle_count, int frame, vec4* frame_buffer) {
+__global__ void Shade(const Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, int triangle_count, int frame, vec4* frame_buffer) {
 	while (true) {
 		int index = atomicAdd(&counter_shade, 1);
 		unsigned int seed = (index + frame * 147565741) * 720898027 * index;
@@ -547,7 +779,7 @@ __global__ void Shade(Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer, Ray*
 	}
 }
 
-__global__ void ShadeReference(Scene scene, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, vec4* frame_buffer) {
+__global__ void ShadeReference(const Scene& scene, Ray* ray_buffer, Ray* ray_buffer_next, int ray_buffer_size, vec4* frame_buffer) {
 	while (true) {
 		int index = atomicAdd(&counter_shade, 1);
 
@@ -618,7 +850,7 @@ __global__ void ShadeReference(Scene scene, Ray* ray_buffer, Ray* ray_buffer_nex
 }
 
 //connect kernel
-__global__ void Connect(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_list, Ray* shadow_ray_buffer, int triangle_count, vec4* frame_buffer) {
+__global__ void Connect(const Scene scene, MBVHNode_CacheFriendly* bvh, int* bvh_tri_list, Ray* shadow_ray_buffer, int triangle_count, vec4* frame_buffer) {
 	while (true) {
 		int index = atomicAdd(&counter_connect, 1);
 
@@ -629,7 +861,7 @@ __global__ void Connect(Scene scene, BVHNode_CacheFriendly* bvh, int* bvh_tri_li
 		Ray* current_ray = &shadow_ray_buffer[index];
 
 #if 1
-		shadow_traverse_BHV(scene.t_vertices_gpu, scene.t_normals_gpu, scene.t_mats_gpu, scene.t_indices_gpu, &shadow_ray_buffer[index], bvh, bvh_tri_list);
+		shadow_traverse_MBVH(scene.t_vertices_gpu, scene.t_normals_gpu, scene.t_mats_gpu, scene.t_indices_gpu, &shadow_ray_buffer[index], bvh, bvh_tri_list);
 #else
 		for (int i = 0; i < triangle_count; i++) {
 			float current_t;
@@ -672,12 +904,12 @@ cudaError launch_kernels(cudaArray_const_t array, vec4* frame_buffer, KernelPara
 	}
 	GeneratePrimaryRays << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.top_left, kernel_params.step_h, kernel_params.step_v, kernel_params.c_position, kernel_params.ray_buffer, ray_buffer_size, frame, frame_buffer);
 	SetGlobalVariables << <1, 1 >> > (ray_buffer_size);
-	Extend << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, bvh->cf_bvh_gpu, bvh->triangle_indices_gpu, kernel_params.ray_buffer, ray_buffer_size, kernel_params.scene.tri_count, frame);
+	Extend << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, bvh->cf_mbvh_gpu, bvh->mbvh_triangle_indices_gpu, kernel_params.ray_buffer, ray_buffer_size, kernel_params.scene.tri_count, frame);
 #ifdef USE_REFERENCE	
 	ShadeReference << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, frame_buffer);
 #else
 	Shade << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, kernel_params.shadow_ray_buffer, kernel_params.ray_buffer, kernel_params.ray_buffer_next, ray_buffer_size, kernel_params.scene.tri_count, frame, frame_buffer);
-	Connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, bvh->cf_bvh_gpu, bvh->triangle_indices_gpu, kernel_params.shadow_ray_buffer, kernel_params.scene.tri_count, frame_buffer);
+	Connect << <kernel_params.sm_cores * 8, 128 >> > (kernel_params.scene, bvh->cf_mbvh_gpu, bvh->mbvh_triangle_indices_gpu, kernel_params.shadow_ray_buffer, kernel_params.scene.tri_count, frame_buffer);
 #endif
 	cudaAssert(DeviceSynchronize());
 

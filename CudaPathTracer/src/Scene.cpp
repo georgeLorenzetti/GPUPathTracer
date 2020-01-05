@@ -229,27 +229,27 @@ void Scene::DeerSceneSetup() {
 	LoadObject("assets/dragon.obj");
 
 	for (int i = 0; i < this->tri_count; i++) {
-		this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 1.0f)));
+		this->t_mats.push_back(Material(2, vec3(0.5f, 0.5f, 0.5f)));
 	}
 
 	//floor
-	//this->t_indices.push_back(this->t_vertices.size());
-	//this->t_vertices.push_back(vec3(1.0f, -1.0f, -2.0f));
-	//this->t_indices.push_back(this->t_vertices.size());
-	//this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
-	//this->t_indices.push_back(this->t_vertices.size());
-	//this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
-	//this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
-	//this->tri_count++;
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.0f, -1.0f, -2.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
+	this->tri_count++;
 
-	//this->t_indices.push_back(this->t_vertices.size());
-	//this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
-	//this->t_indices.push_back(this->t_vertices.size());
-	//this->t_vertices.push_back(vec3(-1.0f, -1.0f, 0.0f));
-	//this->t_indices.push_back(this->t_vertices.size());
-	//this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
-	//this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f)));
-	//this->tri_count++;
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-1.0f, -1.0f, 0.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f)));
+	this->tri_count++;
 
 	//lights
 	this->light_tri_count = 0;
@@ -328,7 +328,6 @@ void Scene::LoadObject(std::string filename) {
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
 	std::string path = filename;
-
 	if (!tinyobj::LoadObj(&attribute, &shapes, &materials, &warn, &err, path.c_str())) {
 		throw std::runtime_error(warn + err);
 	}
@@ -340,9 +339,26 @@ void Scene::LoadObject(std::string filename) {
 
 	this->tri_count = ind.size() / 3;
 	for (int i = 0; i < attribute.vertices.size() / 3; i++) {
-		tinyobj::real_t vx = attribute.vertices[3 * i + 0] * 0.5f;
-		tinyobj::real_t vy = attribute.vertices[3 * i + 1] * 0.5f;
-		tinyobj::real_t vz = attribute.vertices[3 * i + 2] * 0.5f;
+		tinyobj::real_t vx = attribute.vertices[3 * i + 0];
+		tinyobj::real_t vy = attribute.vertices[3 * i + 1];
+		tinyobj::real_t vz = attribute.vertices[3 * i + 2];
+
+		if (filename.find("deer") != std::string::npos) {
+			vx = attribute.vertices[3 * i + 0] * 0.001f;
+			vy = attribute.vertices[3 * i + 1] * 0.001f;
+			vz = attribute.vertices[3 * i + 2] * 0.001f;
+		}
+		else if (filename.find("dragon") != std::string::npos) {
+			vx = attribute.vertices[3 * i + 0] * 1.5f;
+			vy = attribute.vertices[3 * i + 1] * 1.5f;
+			vz = attribute.vertices[3 * i + 2] * 1.5f;
+			vy += 0.4f;
+		}
+		else if (filename.find("bunny") != std::string::npos) {
+			vx = attribute.vertices[3 * i + 0] * 0.5f;
+			vy = attribute.vertices[3 * i + 1] * 0.5f;
+			vz = attribute.vertices[3 * i + 2] * 0.5f;
+		}
 
 		vy -= 1.0f;
 		vz -= 1.0f;

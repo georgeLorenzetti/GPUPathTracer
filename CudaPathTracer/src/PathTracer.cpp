@@ -17,12 +17,13 @@ PathTracer::PathTracer(int cores){
 	printf("Constructing bvh... ");
 	this->bvh = new BVH();
 	this->bvh->ConstructBVH(this->kernel_params.scene.t_vertices, this->kernel_params.scene.t_indices, this->kernel_params.scene.tri_count);
-	this->bvh->ConstructCacheFriendly(this->kernel_params.scene.tri_count);
 	printf("done \n");
-	//this->kernel_params.scene.ColourBVH(this->bvh->root_node);
-	//this->kernel_params.scene.UpdateMatsGPU();
+	printf("Collapsing into MBVH...");
+	this->bvh->Collapse();
+	printf("done\n");
+	this->bvh->ConstructCacheFriendly(this->kernel_params.scene.tri_count);
 
-	//allocate memory for kernel parameters
+	CalcImageParameters();
 	cudaAssert(DeviceSynchronize());
 
 	cudaAssert(Malloc(&kernel_params.shadow_ray_buffer, BUFFERSIZE * MAXBOUNCE * sizeof(Ray)));
@@ -82,7 +83,6 @@ void PathTracer::TranslateCamera(vec3 direction, float delta_time){
 	direction = normalize(direction);
 	this->camera.translation += direction * this->camera.translation_speed * delta_time;
 	this->camera.c_position += direction * this->camera.translation_speed * delta_time;
-	printf("%f %f %f \n ", this->camera.c_position.x, this->camera.c_position.y, this->camera.c_position.z);
 }
 
 void PathTracer::RotateCameraX(float delta_time){

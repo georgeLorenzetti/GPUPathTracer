@@ -9,3 +9,9 @@ class surface{};
 template <typename T, int TT>
 class texture{};
 #endif
+
+template <typename T>
+__device__ __host__ inline static void swap(T& a, T& b)
+{
+	T c(a); a = b; b = c;
+}
