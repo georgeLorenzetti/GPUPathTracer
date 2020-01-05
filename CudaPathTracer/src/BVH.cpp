@@ -704,7 +704,7 @@ void BVH::PopulateCFBVH(unsigned int& current_index, unsigned int& cumulative_in
 
 void printBTmr(const std::string& prefix, int current, bool isLeft, MBVHNode_CacheFriendly* cf_mbvh)
 {
-	printf("%d %d \n", sizeof(MBVHNode_CacheFriendly), sizeof(BVHNode_CacheFriendly));
+	printf("Node Sizes MBVH = %d BHV = %d \n", sizeof(MBVHNode_CacheFriendly), sizeof(BVHNode_CacheFriendly));
 }
 
 void BVH::ConstructCacheFriendly(int tri_count) {

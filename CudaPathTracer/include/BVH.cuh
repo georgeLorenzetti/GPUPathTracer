@@ -87,7 +87,9 @@ public:
 	//cache friendly
 	void ConstructCacheFriendly(int tri_count);
 	void PopulateCFBVH(unsigned int& current_index, unsigned int& triangle_index, BVHNode* current);
-	void PopulateCFBVH(unsigned int& current_index,  unsigned int& cumulative_index, unsigned int& triangle_index, MBVHNode* current);
+	void PopulateCFBVH(unsigned int& current_index, unsigned int& cumulative_index, unsigned int& triangle_index, MBVHNode* current);
+	int count_nodes(BVHNode* root);
+	int count_nodes(MBVHNode* root);
 
 	//BVH variables
 	BVHNode* root_node;
@@ -107,17 +109,4 @@ public:
 	//pointer to vertices and indices
 	std::vector<int>* t_indices;
 	std::vector<glm::vec3>* t_vertices;
-
-	//tester
-	int count_nodes(BVHNode* root);
-	int count_nodes(MBVHNode* root);
-	bool intersect_AABB(glm::vec3& origin, const glm::vec3& direction_inverse, const glm::vec3& aabb_min, const glm::vec3& aabb_max);
-	int* intersect_MAABB(const glm::vec3& origin, const glm::vec3& direction_inverse, const float& t,
-		const glm::vec4& bounds_min_x, const glm::vec4& bounds_max_x,
-		const glm::vec4& bounds_min_y, const glm::vec4& bounds_max_y,
-		const glm::vec4& bounds_min_z, const glm::vec4& bounds_max_z,
-		glm::bvec4& result);
-	bool traverse_BVH(std::vector<glm::vec3> t_vertices, std::vector<glm::vec3> t_normals, std::vector<int> t_indices, glm::vec3 origin, glm::vec3 direction, BVHNode_CacheFriendly* bvh, int* bvh_tri_list, int x, int y);
-	bool traverse_MBVH(std::vector<glm::vec3> t_vertices, std::vector<glm::vec3> t_normals, std::vector<int> t_indices, glm::vec3 origin, glm::vec3 direction, float t, MBVHNode_CacheFriendly* mbvh, int* mbvh_tri_list, int x, int y);
-
 };

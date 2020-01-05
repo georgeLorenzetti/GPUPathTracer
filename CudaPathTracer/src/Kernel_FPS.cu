@@ -315,7 +315,7 @@ __device__ bool shadow_traverse_MBVH(const vec3* t_vertices_gpu, const vec3* t_n
 			bvec4 result = bvec4();
 			int* t_min_i = intersect_MBVH_node(ray->origin, 1.0f / ray->direction, ray->t, bounds_min_x, bounds_max_x, bounds_min_y, bounds_max_y, bounds_min_z, bounds_max_z, result);
 			if (any(result)) {
-				for (int i = current_node.u.inner.child_count - 1; i >= 0; i--) { // reversed order, we want to check best nodes first
+				for (int i = current_node.u.inner.child_count - 1; i >= 0; i--) {
 					const int idx = (t_min_i[i] & 0b11);
 					if (result[i] == 1) {
 						access_stack[stack_index] =  current_node.u.inner.child_index + i;
@@ -407,7 +407,7 @@ __device__ bool traverse_MBVH(vec3* t_vertices_gpu, vec3* t_normals_gpu, int* t_
 			bvec4 result = bvec4();
 			int* t_min_i = intersect_MBVH_node(ray->origin, 1.0f / ray->direction, ray->t, bounds_min_x, bounds_max_x, bounds_min_y, bounds_max_y, bounds_min_z, bounds_max_z, result);
 			if (any(result)) {
-				for (int i = current_node.u.inner.child_count - 1; i >= 0; i--) { // reversed order, we want to check best nodes first
+				for (int i = current_node.u.inner.child_count - 1; i >= 0; i--) {
 					const int idx = (t_min_i[i] & 0b11);
 					if (result[i] == 1) {
 						access_stack[stack_index] = current_node.u.inner.child_index + i;
