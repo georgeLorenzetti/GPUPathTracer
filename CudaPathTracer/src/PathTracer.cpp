@@ -18,9 +18,9 @@ PathTracer::PathTracer(int cores){
 	this->bvh = new BVH();
 	this->bvh->ConstructBVH(this->kernel_params.scene.t_vertices, this->kernel_params.scene.t_indices, this->kernel_params.scene.tri_count);
 	printf("done \n");
-	printf("Collapsing into MBVH...");
+	printf("Collapsing into MBVH... ");
 	this->bvh->Collapse();
-	printf("done\n");
+	printf("done \n");
 	this->bvh->ConstructCacheFriendly(this->kernel_params.scene.tri_count);
 
 	CalcImageParameters();
