@@ -6,8 +6,8 @@ using namespace glm;
 
 void Scene::CornellSetup(){
 	//scene
-	this->bg_colour = vec3(66.0f/255.0f, 134.0f/255.0f, 244.0f/255.0f);
-
+	//this->bg_colour = vec3(66.0f/255.0f, 134.0f/255.0f, 244.0f/255.0f);
+	this->bg_colour = vec3(0.0f, 0.0f, 0.0f);
 	this->t_vertices = {
 
 		//floor
@@ -39,22 +39,22 @@ void Scene::CornellSetup(){
 		vec3(-3.5f, -3.0f, -8.0f),//17
 		vec3(3.5f, 3.0f, -8.0f), //18
 		vec3(3.5f, -3.0f, -8.0f),//19
-
+		
 		//big box
-		vec3(-0.0f, -3.0f, -7.0f), //20
-		vec3(-0.0f, -3.0f, -5.0f), //21
-		vec3(-2.0f, -3.0f, -7.0f),//22
-		vec3(-2.0f, -3.0f, -5.0f),//23
+		vec3(-0.0f, -2.9f, -7.0f), //20
+		vec3(-0.0f, -2.9f, -5.0f), //21
+		vec3(-2.0f, -2.9f, -7.0f),//22
+		vec3(-2.0f, -2.9f, -5.0f),//23
 		vec3(-0.0f, -1.0f, -7.0f), //24
 		vec3(-0.0f, -1.0f, -5.0f), //25
 		vec3(-2.0f, -1.0f, -7.0f),//26
 		vec3(-2.0f, -1.0f, -5.0f),//27
 
 		//small box
-		vec3(1.0f, -3.0f, -5.0f), //28
-		vec3(1.5f, -3.0f, -4.5f), //29
-		vec3(2.0f, -3.0f, -5.0f),//30
-		vec3(1.5f, -3.0f, -5.5f),//31
+		vec3(1.0f, -2.9f, -5.0f), //28
+		vec3(1.5f, -2.9f, -4.5f), //29
+		vec3(2.0f, -2.9f, -5.0f),//30
+		vec3(1.5f, -2.9f, -5.5f),//31
 		vec3(1.0f, -2.0f, -5.0f), //32
 		vec3(1.5f, -2.0f, -4.5f), //33
 		vec3(2.0f, -2.0f, -5.0f),//34
@@ -219,7 +219,9 @@ void Scene::CornellSetup(){
 }
 
 void Scene::DeerSceneSetup() {
-	this->bg_colour = vec3(66.0f / 255.0f, 134.0f / 255.0f, 244.0f / 255.0f);
+	//this->bg_colour = vec3(66.0f / 255.0f, 134.0f / 255.0f, 244.0f / 255.0f);
+	this->bg_colour = vec3(0.0f, 0.0f, 0.0f);
+
 	this->tri_count = 0;
 
 	this->t_vertices = std::vector<vec3>();
@@ -239,7 +241,7 @@ void Scene::DeerSceneSetup() {
 	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
 	this->t_indices.push_back(this->t_vertices.size());
 	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
-	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f), 0.05f));
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
@@ -248,7 +250,7 @@ void Scene::DeerSceneSetup() {
 	this->t_vertices.push_back(vec3(-1.0f, -1.0f, 0.0f));
 	this->t_indices.push_back(this->t_vertices.size());
 	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
-	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f)));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f), 0.05f));
 	this->tri_count++;
 
 	//lights
@@ -275,21 +277,21 @@ void Scene::DeerSceneSetup() {
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.5f, 3.99999f,  5.0f));
+	this->t_vertices.push_back(vec3(0.5f, 3.99999f,  5.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(0.5f, 3.99999f, 1.5f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
+	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 5.0f));
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
 	this->light_tri_count++;
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
+	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 5.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(0.5f, 3.99999f, 1.5f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 1.5f));
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
 	this->light_tri_count++;
 	this->tri_count++;
@@ -366,22 +368,68 @@ void Scene::LoadObject(std::string filename) {
 	}
 }
 
+void Scene::LoadTexture(std::string filename) {
+	FIBITMAP* fbmp = FreeImage_Load(FreeImage_GetFileType(filename.c_str(), 0), filename.c_str());
+
+	int index;
+	if (texture_descriptors.size() == 0) {
+		index = 0;
+	}
+	else {
+		index = texture_descriptors[texture_descriptors.size()-1].r + texture_descriptors[texture_descriptors.size() - 1].g * texture_descriptors[texture_descriptors.size() - 1].b;
+	}
+	int tex_width = FreeImage_GetWidth(fbmp);
+	int tex_height = FreeImage_GetHeight(fbmp);
+	texture_descriptors.push_back(vec3(index, tex_width, tex_height));
+	for (int i = 0; i < tex_height; i++) {
+		for (int j = 0; j < tex_width; j++) {
+			RGBQUAD pixel;
+			FreeImage_GetPixelColor(fbmp, j, i, &pixel);
+			texture_buffer.push_back(vec3(pixel.rgbRed / 255.0f, pixel.rgbGreen / 255.0f, pixel.rgbBlue / 255.0f));
+		}
+	}
+}
+
+void Scene::LoadTextures() {
+	printf("Loading textures... ");
+	this->texture_buffer = std::vector<vec3>();
+	this->texture_descriptors = std::vector<vec3>();
+	//skybox
+	LoadTexture("assets/texture/atlantic.bmp");
+
+	printf("done\n");
+}
+
 void Scene::Init(){
+	LoadTextures();
 	DeerSceneSetup();
 	//CornellSetup();
 	this->tri_count = this->t_mats.size();
-
 	cudaAssert(Malloc(&(this->t_vertices_gpu), this->t_vertices.size() * sizeof(vec3)));
 	cudaAssert(Malloc(&(this->t_indices_gpu), this->t_indices.size() * sizeof(int)));
 	cudaAssert(Malloc(&(this->t_mats_gpu), this->t_mats.size() * sizeof(Material)));
 	cudaAssert(Malloc(&(this->t_normals_gpu), this->t_normals.size() * sizeof(vec3)));
 	cudaAssert(Malloc(&(this->light_areas_gpu), this->light_areas.size() * sizeof(float)));
+	cudaAssert(Malloc(&(this->texture_buffer_gpu), this->texture_buffer.size() * sizeof(vec3)));
+	cudaAssert(Malloc(&(this->texture_descriptors_gpu), this->texture_descriptors.size() * sizeof(vec3)));
+
 
 	cudaAssert(Memcpy(this->t_vertices_gpu, this->t_vertices.data(), this->t_vertices.size() * sizeof(vec3), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->t_indices_gpu, this->t_indices.data(), this->t_indices.size() * sizeof(int), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->t_mats_gpu, this->t_mats.data(), this->t_mats.size() * sizeof(Material), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->t_normals_gpu, this->t_normals.data(), this->t_normals.size() * sizeof(vec3), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->light_areas_gpu, this->light_areas.data(), this->light_areas.size() * sizeof(float), cudaMemcpyHostToDevice));
+	cudaAssert(Memcpy(this->texture_buffer_gpu, this->texture_buffer.data(), this->texture_buffer.size() * sizeof(vec3), cudaMemcpyHostToDevice));
+	cudaAssert(Memcpy(this->texture_descriptors_gpu, this->texture_descriptors.data(), this->texture_descriptors.size() * sizeof(vec3), cudaMemcpyHostToDevice));
+
+	texture_buffer.clear();
+	t_vertices.clear();
+	t_indices.clear();
+	t_mats.clear();
+	t_normals.clear();
+	light_areas.clear();
+	texture_descriptors.clear();
+	cudaAssert(DeviceSynchronize());
 }
 
 void Scene::ColourBVH(BVHNode* node) {

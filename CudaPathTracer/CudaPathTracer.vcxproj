@@ -119,7 +119,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>dependancies\glad\include;dependancies\glfw-3.3\include;dependancies\glm;dependancies\glew-2.1.0\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>dependancies\FreeImage\include;dependancies\glad\include;dependancies\glfw-3.3\include;dependancies\glm;dependancies\glew-2.1.0\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -127,14 +127,14 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(CUDA_LIB_PATH);dependancies\glfw-3.3\lib-vc2019;dependancies\glew-2.1.0\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cudart.lib;glfw3dll.lib;glfw3.lib;glew32.lib;glew32s.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>dependancies\FreeImage\lib;$(CUDA_LIB_PATH);dependancies\glfw-3.3\lib-vc2019;dependancies\glew-2.1.0\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImage.lib;cudart.lib;glfw3dll.lib;glfw3.lib;glew32.lib;glew32s.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <GPUDebugInfo>false</GPUDebugInfo>
     </CudaCompile>
     <CudaCompile>
-      <GenerateLineInfo>false</GenerateLineInfo>
+      <GenerateLineInfo>true</GenerateLineInfo>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -147,6 +147,7 @@
     <ClCompile Include="src\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dependancies\FreeImage\include\FreeImage.h" />
     <ClInclude Include="include\BVH.cuh" />
     <ClInclude Include="include\Camera.h" />
     <ClInclude Include="include\CudaAssert.h" />
@@ -161,12 +162,16 @@
     <ClInclude Include="include\tiny_obj_loader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="FreeImage.dll" />
     <None Include="glew32.dll" />
     <None Include="glfw3.dll" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\Kernel.cu" />
     <CudaCompile Include="src\Kernel_FPS.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="dependancies\FreeImage\lib\FreeImage.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

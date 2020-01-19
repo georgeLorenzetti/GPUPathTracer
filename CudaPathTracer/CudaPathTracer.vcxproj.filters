@@ -70,13 +70,20 @@
     <ClInclude Include="include\tiny_obj_loader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dependancies\FreeImage\include\FreeImage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="glfw3.dll" />
     <None Include="glew32.dll" />
+    <None Include="FreeImage.dll" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\Kernel.cu" />
     <CudaCompile Include="src\Kernel_FPS.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="dependancies\FreeImage\lib\FreeImage.lib" />
   </ItemGroup>
 </Project>

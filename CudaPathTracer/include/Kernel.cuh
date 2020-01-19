@@ -16,27 +16,27 @@ struct Ray{
 public:
 	__device__ Ray(){};
 
-	__device__ Ray(glm::vec3 o, glm::vec3 d, int index){
-		origin = o;
-		direction = d;
-		t = MAXDISTANCE;
-		intersection_index = -1;
-		cumulative_colour = glm::vec3(1.0f);
-		pixel_index = index;
-		terminate_flag = false;
-		bounce = 0;
+	__device__ Ray(glm::vec3 _origin, glm::vec3 _direction, int _index){
+		this->origin = _origin;
+		this->direction = _direction;
+		this->t = MAXDISTANCE;
+		this->intersection_index = -1;
+		this->cumulative_colour = glm::vec3(1.0f);
+		this->pixel_index = _index;
+		this->terminate_flag = false;
+		this->bounce = 0;
 
 		//initial intersection material is the background
 		intersected_material = Material(0, glm::vec4(66.0f, 134.0f, 244.0f, 1.0f));
 	}
 
-	__device__ Ray(glm::vec3 o, glm::vec3 d, int index, glm::vec3 colour){
-		this->origin = o;
-		this->direction = d;
+	__device__ Ray(glm::vec3 _origin, glm::vec3 _direction, int _index, glm::vec3 _colour){
+		this->origin = _origin;
+		this->direction = _direction;
 		this->t = MAXDISTANCE;
 		this->intersection_index = -1;
-		this->cumulative_colour = colour;
-		this->pixel_index = index;
+		this->cumulative_colour = _colour;
+		this->pixel_index = _index;
 		this->terminate_flag = false;
 		this->bounce = 0;
 
@@ -55,7 +55,7 @@ public:
 	int bounce;
 	Material intersected_material;
 	glm::vec3 reflected_direction;
-	bool isShadow = false;
+	bool last_specular = false;
 };
 
 struct KernelParams{
