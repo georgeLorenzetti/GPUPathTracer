@@ -228,10 +228,10 @@ void Scene::DeerSceneSetup() {
 	this->t_indices = std::vector<int>();
 	this->t_normals = std::vector<vec3>();
 	this->t_mats = std::vector<Material>();
-	LoadObject("assets/bunny.obj");
+	LoadObject("assets/dragon.obj");
 
 	for (int i = 0; i < this->tri_count; i++) {
-		this->t_mats.push_back(Material(4, vec3(0.5f, 0.5f, 0.5f)));
+		this->t_mats.push_back(Material(2, vec3(0.5f, 0.5f, 0.5f)));
 	}
 
 	//floor
@@ -277,21 +277,21 @@ void Scene::DeerSceneSetup() {
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.5f, 3.99999f,  5.0f));
+	this->t_vertices.push_back(vec3(0.5f, 3.99999f,  5.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(0.5f, 3.99999f, 1.5f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
+	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 5.0f));
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
 	this->light_tri_count++;
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
+	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 5.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(0.5f, 3.99999f, 1.5f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 1.5f));
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
 	this->light_tri_count++;
 	this->tri_count++;
@@ -402,8 +402,8 @@ void Scene::LoadTextures() {
 
 void Scene::Init(){
 	LoadTextures();
-	//DeerSceneSetup();
-	CornellSetup();
+	DeerSceneSetup();
+	//CornellSetup();
 	this->tri_count = this->t_mats.size();
 	cudaAssert(Malloc(&(this->t_vertices_gpu), this->t_vertices.size() * sizeof(vec3)));
 	cudaAssert(Malloc(&(this->t_indices_gpu), this->t_indices.size() * sizeof(int)));
@@ -422,6 +422,13 @@ void Scene::Init(){
 	cudaAssert(Memcpy(this->texture_buffer_gpu, this->texture_buffer.data(), this->texture_buffer.size() * sizeof(vec3), cudaMemcpyHostToDevice));
 	cudaAssert(Memcpy(this->texture_descriptors_gpu, this->texture_descriptors.data(), this->texture_descriptors.size() * sizeof(vec3), cudaMemcpyHostToDevice));
 
+	texture_buffer.clear();
+	t_vertices.clear();
+	t_indices.clear();
+	t_mats.clear();
+	t_normals.clear();
+	light_areas.clear();
+	texture_descriptors.clear();
 	cudaAssert(DeviceSynchronize());
 }
 

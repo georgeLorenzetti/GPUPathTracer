@@ -430,6 +430,10 @@ __device__ bool traverse_MBVH(vec3* t_vertices_gpu, vec3* t_normals_gpu, int* t_
 					intersection_point,
 					current_t);
 
+				//if (t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3]] == vec3(-3.5f, 3.0f, -8.0f) && t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3 + 1]] == vec3(-3.5f, -3.0f, -8.0f) && t_vertices_gpu[t_indices_gpu[mbvh_tri_list[i] * 3 + 2]] == vec3(-3.5f, 3.0f, -3.0f)) {
+				//	atomicAdd(&debug_count, 1);
+				//}
+
 				if (!intersected_something || current_t < 0 || current_t >= ray->t) {
 					continue;
 				}
@@ -546,8 +550,8 @@ __device__ void Draw(vec4& colour, int x, int y) {
 /**DEBUG KERNELS/FUNCTIONS**/
 
 //generic setup for printing things
-__global__ void print_helper(Scene scene, MBVHNode_CacheFriendly* node, int* mbvh_triangles, BVHNode_CacheFriendly* bnode, int* bvh_triangles, int frame) {
-
+__global__ void print_helper() {
+	printf("%d \n", debug_count);
 }
 
 /**MAIN KERNELS**/
@@ -701,7 +705,6 @@ __global__ void Shade(const Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer
 			if (current_ray->bounce == 0 || current_ray->last_specular) {
 				vec2 uv = { 1.0f + atan2f(current_ray->direction.x, -current_ray->direction.z) * glm::one_over_pi<float>() * 0.5f, 1.0f - acosf(current_ray->direction.y) * glm::one_over_pi<float>() };
 				int index = uv.x + (uv.y * SCRWIDTH);
-				//printf("%d \n", index);
 				vec3 skybox_colour = GetTextureColour(0, uv.x, uv.y, scene.texture_buffer_gpu, scene.texture_descriptors_gpu);
 				current_ray->cumulative_colour = skybox_colour;
 			}
@@ -767,8 +770,9 @@ __global__ void Shade(const Scene scene, Ray* shadow_ray_buffer, Ray* ray_buffer
 			float ln_dot_l = dot(light_normal, -1.0f * shadow_ray_direction);
 			if (ln_dot_l > 0 && n_dot_l > 0) {
 
-				float area = scene.light_areas_gpu[scene.light_tri_count - counter];
+				float area = scene.light_areas_gpu[counter - 1];
 				float inverse_area_pdf = scene.total_light_area / area;
+				//printf("%f \n", inverse_area_pdf);
 				float solid_angle = (area * (ln_dot_l)) / distance_sqared;
 
 				float pdf1 = 1 / solid_angle;

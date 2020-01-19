@@ -708,15 +708,28 @@ void printBTmr(const std::string& prefix, int current, bool isLeft, MBVHNode_Cac
 }
 
 void BVH::ConstructCacheFriendly(int tri_count) {
-	int mbvh_count = count_nodes(this->root_node_mbvh);
+	int bvh_count = count_nodes(this->root_node);
 	unsigned int cumulative_index = 0;
 	unsigned int current_index = 0;
 	unsigned int triangle_index = 0;
+	this->cf_bvh = new BVHNode_CacheFriendly[bvh_count];
+	this->triangle_indices = new int[tri_count];
+	PopulateCFBVH(cumulative_index, triangle_index, this->root_node);
+
+	int mbvh_count = count_nodes(this->root_node_mbvh);
+	cumulative_index = 0;
+	current_index = 0;
+	triangle_index = 0;
 	this->cf_mbvh = new MBVHNode_CacheFriendly[mbvh_count];
 	this->mbvh_triangle_indices = new int[tri_count];
 	PopulateCFBVH(current_index, cumulative_index, triangle_index, this->root_node_mbvh);
 	printBTmr("", mbvh_count, false, this->cf_mbvh);
 	//allocate mbvh in cuda memory
+	cudaAssert(Malloc(&(cf_bvh_gpu), bvh_count * sizeof(BVHNode_CacheFriendly)));
+	cudaAssert(Malloc(&(triangle_indices_gpu), tri_count * sizeof(int)));
+	cudaAssert(Memcpy(cf_bvh_gpu, cf_bvh, bvh_count * sizeof(BVHNode_CacheFriendly), cudaMemcpyHostToDevice));
+	cudaAssert(Memcpy(triangle_indices_gpu, triangle_indices, tri_count * sizeof(int), cudaMemcpyHostToDevice));
+
 	cudaAssert(Malloc(&(cf_mbvh_gpu), mbvh_count * sizeof(MBVHNode_CacheFriendly)));
 	cudaAssert(Malloc(&(mbvh_triangle_indices_gpu), tri_count * sizeof(int)));
 	cudaAssert(Memcpy(cf_mbvh_gpu, cf_mbvh, mbvh_count * sizeof(MBVHNode_CacheFriendly), cudaMemcpyHostToDevice));

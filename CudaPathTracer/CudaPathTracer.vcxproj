@@ -134,7 +134,7 @@
       <GPUDebugInfo>false</GPUDebugInfo>
     </CudaCompile>
     <CudaCompile>
-      <GenerateLineInfo>false</GenerateLineInfo>
+      <GenerateLineInfo>true</GenerateLineInfo>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
