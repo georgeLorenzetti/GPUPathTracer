@@ -15,8 +15,8 @@ To Do:
  - Skybox
  - Probs extra stuff that I haven't though of yet
  
- <img src="https://github.com/georgeLorenzetti/GPUPathTracer/blob/master/CudaPathTracer/screenies/CudaPathTracer_IPgWP2Y2Lt.png" height="300" width="300"></img>
- <img src="https://github.com/georgeLorenzetti/GPUPathTracer/blob/master/CudaPathTracer/screenies/CudaPathTracer_Ehj1jNW2Ks.png" height="300" width="300"></img>
+ <img src="https://github.com/georgeLorenzetti/GPUPathTracer/blob/master/CudaPathTracer/screenies/CudaPathTracer_IPgWP2Y2Lt.png"></img>
+ <img src="https://github.com/georgeLorenzetti/GPUPathTracer/blob/master/CudaPathTracer/screenies/CudaPathTracer_Ehj1jNW2Ks.png"></img>
  
  Bugs (to remind myself what I need to fix)
  - Different window sizes act strange
