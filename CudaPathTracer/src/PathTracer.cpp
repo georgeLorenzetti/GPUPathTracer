@@ -22,7 +22,6 @@ PathTracer::PathTracer(int cores){
 	this->bvh->Collapse();
 	printf("done \n");
 	this->bvh->ConstructCacheFriendly(this->kernel_params.scene.tri_count);
-
 	CalcImageParameters();
 	cudaAssert(DeviceSynchronize());
 
@@ -57,6 +56,7 @@ void inline PathTracer::CalcImageParameters(){
 	vec4 bottomLeft = vec4(bottomLeftx, bottomLefty, -1, 1);
 	bottomLeft = this->camera.c_matrix * bottomLeft;
 	bottomLeft += vec4(this->camera.translation, 1);
+
 
 	//calculate x,y,x step size for pixel interpolation
 	vec3 stepH = vec3(topRight.x - topLeft.x, topRight.y - topLeft.y, topRight.z - topLeft.z);

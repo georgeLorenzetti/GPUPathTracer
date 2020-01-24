@@ -228,28 +228,82 @@ void Scene::DeerSceneSetup() {
 	this->t_indices = std::vector<int>();
 	this->t_normals = std::vector<vec3>();
 	this->t_mats = std::vector<Material>();
-	LoadObject("assets/dragon.obj");
 
+	LoadObject("assets/dragon.obj");
 	for (int i = 0; i < this->tri_count; i++) {
 		this->t_mats.push_back(Material(2, vec3(0.5f, 0.5f, 0.5f)));
 	}
 
 	//floor
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.0f, -1.0f, -2.0f));
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -3.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -1.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	this->t_vertices.push_back(vec3(-2.0f, -1.0f, -3.0f));
 	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f), 0.05f));
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.0f, -1.0f, -2.0f));
+	this->t_vertices.push_back(vec3(-2.0f, -1.0f, -3.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-1.0f, -1.0f, 0.0f));
+	this->t_vertices.push_back(vec3(-2.0f, -1.0f, -1.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(1.0f, -1.0f, 0.0f));
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -1.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f), 0.05f));
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(2.0f, -1.0f, -3.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(2.0f, -1.0f, -1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -3.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f), 0.05f));
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -3.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(2.0f, -1.0f, -1.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f), 0.05f));
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, 1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-2.0f, -1.0f, -1.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f), 0.05f));
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-2.0f, -1.0f, -1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(-2.0f, -1.0f, 1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, 1.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f), 0.05f));
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(2.0f, -1.0f, -1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(2.0f, -1.0f, 1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -1.0f));
+	this->t_mats.push_back(Material(2, vec3(1.0f, 0.0f, 0.0f), 0.05f));
+	this->tri_count++;
+
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, -1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(0.0f, -1.0f, 1.0f));
+	this->t_indices.push_back(this->t_vertices.size());
+	this->t_vertices.push_back(vec3(2.0f, -1.0f, 1.0f));
 	this->t_mats.push_back(Material(2, vec3(1.0f, 1.0f, 0.0f), 0.05f));
 	this->tri_count++;
 
@@ -277,21 +331,21 @@ void Scene::DeerSceneSetup() {
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(0.5f, 3.99999f,  5.0f));
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f,  5.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(0.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 5.0f));
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
 	this->light_tri_count++;
 	this->tri_count++;
 
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 5.0f));
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 5.0f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(0.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(1.5f, 3.99999f, 1.5f));
 	this->t_indices.push_back(this->t_vertices.size());
-	this->t_vertices.push_back(vec3(-0.5f, 3.99999f, 1.5f));
+	this->t_vertices.push_back(vec3(-1.5f, 3.99999f, 1.5f));
 	this->t_mats.push_back(Material(1, vec3(0.0f, 0.0f, 0.0f)));
 	this->light_tri_count++;
 	this->tri_count++;
@@ -339,6 +393,12 @@ void Scene::LoadObject(std::string filename) {
 		this->t_indices.push_back(ind[i].vertex_index);
 	}
 
+
+	mat4 rotate;
+	if (filename.find("dragon")) {
+		rotate = glm::rotate(mat4(1.0f), -120.0f * (PI / 180), vec3(0, 1, 0));
+	}
+
 	this->tri_count = ind.size() / 3;
 	for (int i = 0; i < attribute.vertices.size() / 3; i++) {
 		tinyobj::real_t vx = attribute.vertices[3 * i + 0];
@@ -351,10 +411,17 @@ void Scene::LoadObject(std::string filename) {
 			vz = attribute.vertices[3 * i + 2] * 0.001f;
 		}
 		else if (filename.find("dragon") != std::string::npos) {
-			vx = attribute.vertices[3 * i + 0] * 1.5f;
-			vy = attribute.vertices[3 * i + 1] * 1.5f;
-			vz = attribute.vertices[3 * i + 2] * 1.5f;
-			vy += 0.4f;
+			vec4 v = vec4(vx, vy, vz, 1.0f);
+			v = v * rotate;
+			vx = v.x;
+			vy = v.y;
+			vz = v.z;
+
+			vx *= 1.8f;
+			vy *= 1.8f;
+			vz *= 1.8f;
+
+			vy += 0.5f;
 		}
 		else if (filename.find("bunny") != std::string::npos) {
 			vx = attribute.vertices[3 * i + 0] * 0.5f;
@@ -402,8 +469,8 @@ void Scene::LoadTextures() {
 
 void Scene::Init(){
 	LoadTextures();
-	DeerSceneSetup();
-	//CornellSetup();
+	//DeerSceneSetup();
+	CornellSetup();
 	this->tri_count = this->t_mats.size();
 	cudaAssert(Malloc(&(this->t_vertices_gpu), this->t_vertices.size() * sizeof(vec3)));
 	cudaAssert(Malloc(&(this->t_indices_gpu), this->t_indices.size() * sizeof(int)));

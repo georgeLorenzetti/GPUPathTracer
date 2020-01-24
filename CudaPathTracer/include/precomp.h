@@ -3,7 +3,7 @@
 //define values
 #define NOMINMAX
 #define PI 3.14159265358979323846264338327950288419716939937510582097494459072381640628620899862803482534211706798f
-#define SCRWIDTH 512	
+#define SCRWIDTH 1024	
 #define SCRHEIGHT 512
 #define INVPI 1 / PI
 #define DOUBLEPI 2 * PI
@@ -46,13 +46,14 @@
 #include <device_launch_parameters.h>
 #include <CudaAssert.h>
 
+//project headers
 #include <BVH.cuh>
 #include <Game.h>
 #include <Material.cuh>
 #include <Scene.h>
+#include <Definitions.h>
 #include <Kernel.cuh>
 #include <Renderer.h>
 #include <Camera.h>
 #include <PathTracer.h>
 
-#include <Definitions.h>

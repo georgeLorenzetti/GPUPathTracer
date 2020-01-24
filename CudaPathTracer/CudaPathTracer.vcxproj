@@ -148,6 +148,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependancies\FreeImage\include\FreeImage.h" />
+    <ClInclude Include="dependancies\glad\include\glad\glad.h" />
+    <ClInclude Include="dependancies\glad\include\KHR\khrplatform.h" />
     <ClInclude Include="include\BVH.cuh" />
     <ClInclude Include="include\Camera.h" />
     <ClInclude Include="include\CudaAssert.h" />
@@ -167,7 +169,6 @@
     <None Include="glfw3.dll" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\Kernel.cu" />
     <CudaCompile Include="src\Kernel_FPS.cu" />
   </ItemGroup>
   <ItemGroup>

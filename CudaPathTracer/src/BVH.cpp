@@ -39,16 +39,14 @@ void BVHNode::CalculateBounds(std::vector<AABB> AABBs) {
 		}
 	}
 
-	//add an epsilon because my intersection code is trash and doesnt count intersections when absolute values are the same
-	if (abs(aabb.bounds[0].x) == abs(aabb.bounds[1].x)) {
-		aabb.bounds[0].x -= 0.000001f;
-	}
-	if (abs(aabb.bounds[0].y) == abs(aabb.bounds[1].y)) {
-		aabb.bounds[0].y -= 0.000001f;
-	}
-	if (abs(aabb.bounds[0].z) == abs(aabb.bounds[1].z)) {
-		aabb.bounds[0].z -= 0.000001f;
-	}
+	//add an epsilon 
+	aabb.bounds[0].x -= 0.0001f;
+	aabb.bounds[0].y -= 0.0001f;
+	aabb.bounds[0].z -= 0.0001f;
+	aabb.bounds[1].x += 0.0001f;
+	aabb.bounds[1].y += 0.0001f;
+	aabb.bounds[1].z += 0.0001f;
+	
 	aabb.CalculateCentre();
 	this->aabb = aabb;
 }
@@ -250,6 +248,9 @@ int BVH::ObjectPartition(BVHNode* node, std::vector<AABB> AABBs, float& split_po
 		int n = 0;
 		while (x_vals[n] < split) {
 			n++;
+			if (n >= x_vals.size()) {
+				break;
+			}
 		}
 
 		tempCost = (SALeft * (float)n) + (SARight * ((float)AABBs.size() - (float)n));
@@ -549,35 +550,6 @@ void BVH::MakeSpatialSplit(std::vector<AABB>& left_AABBs, std::vector<AABB>& rig
 	node->right->aabb.bounds[0][split_axis_spatial] = split_position;
 }
 
-void printBTr(const std::string& prefix, const MBVHNode* node, bool isLeft)
-{
-	if (node != nullptr)
-	{
-		std::cout << prefix;
-
-		std::cout << (isLeft ? "---" : "---");
-
-		// print the value of the node
-		if (!node->is_leaf) {
-			std::cout << "I" << std::endl;
-		}
-		else {
-			std::cout << node->leaf_triangles.size() << std::endl;
-		}
-		// enter the next tree level - left and right branch
-		for (int i = 0; i < node->children.size(); i++) {
-			printBTr(prefix + (isLeft ? "   " : "    "), node->children[i], true);
-		}
-	}
-}
-
-void printBT(const MBVHNode* node)
-{
-	printBTr("", node, false);
-}
-
-// pass the root node of your binary tree
-
 MBVHNode* mergeNodes(BVHNode* node) {
 	MBVHNode* m_node = new MBVHNode();
 	if (!node->is_leaf) {
@@ -617,7 +589,6 @@ void BVH::Collapse() {
 /**CACHE FRIENDLY BVH FUNCTIONS**/
 int BVH::count_nodes(BVHNode* root) {
 	if (!root->is_leaf) {
-		//printf("BVH Leaf: %f %f %f | %f %f %f \n", root->aabb.bounds[0][0], root->aabb.bounds[0][1], root->aabb.bounds[0][2], root->aabb.bounds[1][0], root->aabb.bounds[1][1], root->aabb.bounds[1][2]);
 		return 1 + count_nodes(root->left) + count_nodes(root->right);
 	}
 	else {
@@ -630,7 +601,6 @@ int BVH::count_nodes(BVHNode* root) {
 int BVH::count_nodes(MBVHNode* root) {
 	if (!root->is_leaf) {
 		int count = 0;
-		//printf("MBVH Leaf: %f %f %f | %f %f %f \n", root->aabb.bounds[0][0], root->aabb.bounds[0][1], root->aabb.bounds[0][2], root->aabb.bounds[1][0], root->aabb.bounds[1][1], root->aabb.bounds[1][2]);
 		for (int i = 0; i < root->children.size(); i++) {
 			count += count_nodes(root->children[i]);
 		}
@@ -649,7 +619,6 @@ void BVH::PopulateCFBVH(unsigned int& cumulative_index, unsigned int& triangle_i
 	this->cf_bvh[current_index].bounds[1] = node->aabb.bounds[1];
 
 	if (!(node->is_leaf)) {
-		//std::cout << "INNER " << cumulative_index << std::endl;
 		cumulative_index++;
 		unsigned int left_index = cumulative_index;
 		PopulateCFBVH(cumulative_index, triangle_index, node->left);
@@ -665,7 +634,6 @@ void BVH::PopulateCFBVH(unsigned int& cumulative_index, unsigned int& triangle_i
 		unsigned int count = (unsigned int)node->leaf_triangles.size();
 		cf_bvh[current_index].u.leaf.count = 0x80000000 | count; //basically sets the first bit of count a
 		cf_bvh[current_index].u.leaf.index_first_tri = triangle_index;
-		//std::cout << "LEAF " << cumulative_index << std::endl;
 		for (unsigned int i = 0; i < count; i++) {
 			this->triangle_indices[triangle_index] = node->leaf_triangles[i];
 			triangle_index++;
@@ -678,7 +646,6 @@ void BVH::PopulateCFBVH(unsigned int& current_index, unsigned int& cumulative_in
 	this->cf_mbvh[current_index].bounds[1] = node->aabb.bounds[1];
 
 	if (!(node->is_leaf)) {
-		//std::cout << "INNER " << cumulative_index << std::endl;
 		std::vector<unsigned int> child_indices = std::vector<unsigned int>();
 		cumulative_index += node->children.size();
 		cf_mbvh[current_index].u.inner.child_index = cumulative_index + 1 - node->children.size();
@@ -694,7 +661,6 @@ void BVH::PopulateCFBVH(unsigned int& current_index, unsigned int& cumulative_in
 		unsigned int count = (unsigned int)node->leaf_triangles.size();
 		cf_mbvh[current_index].u.leaf.count = 0x80000000 | count; //basically sets the first bit of count a
 		cf_mbvh[current_index].u.leaf.index_first_tri = triangle_index;
-		//std::cout << "LEAF " << cumulative_index << std::endl;
 		for (unsigned int i = 0; i < count; i++) {
 			this->mbvh_triangle_indices[triangle_index] = node->leaf_triangles[i];
 			triangle_index++;
@@ -702,34 +668,18 @@ void BVH::PopulateCFBVH(unsigned int& current_index, unsigned int& cumulative_in
 	}
 }
 
-void printBTmr(const std::string& prefix, int current, bool isLeft, MBVHNode_CacheFriendly* cf_mbvh)
-{
-	printf("Node Sizes MBVH = %d BHV = %d \n", sizeof(MBVHNode_CacheFriendly), sizeof(BVHNode_CacheFriendly));
-}
-
 void BVH::ConstructCacheFriendly(int tri_count) {
-	int bvh_count = count_nodes(this->root_node);
+
+	int mbvh_count = count_nodes(this->root_node_mbvh);
 	unsigned int cumulative_index = 0;
 	unsigned int current_index = 0;
 	unsigned int triangle_index = 0;
-	this->cf_bvh = new BVHNode_CacheFriendly[bvh_count];
-	this->triangle_indices = new int[tri_count];
-	PopulateCFBVH(cumulative_index, triangle_index, this->root_node);
-
-	int mbvh_count = count_nodes(this->root_node_mbvh);
-	cumulative_index = 0;
-	current_index = 0;
-	triangle_index = 0;
 	this->cf_mbvh = new MBVHNode_CacheFriendly[mbvh_count];
 	this->mbvh_triangle_indices = new int[tri_count];
 	PopulateCFBVH(current_index, cumulative_index, triangle_index, this->root_node_mbvh);
-	printBTmr("", mbvh_count, false, this->cf_mbvh);
-	//allocate mbvh in cuda memory
-	cudaAssert(Malloc(&(cf_bvh_gpu), bvh_count * sizeof(BVHNode_CacheFriendly)));
-	cudaAssert(Malloc(&(triangle_indices_gpu), tri_count * sizeof(int)));
-	cudaAssert(Memcpy(cf_bvh_gpu, cf_bvh, bvh_count * sizeof(BVHNode_CacheFriendly), cudaMemcpyHostToDevice));
-	cudaAssert(Memcpy(triangle_indices_gpu, triangle_indices, tri_count * sizeof(int), cudaMemcpyHostToDevice));
+	printf("Node Sizes MBVH = %d BHV = %d \n", sizeof(MBVHNode_CacheFriendly), sizeof(BVHNode_CacheFriendly));
 
+	//allocate mbvh in cuda memory
 	cudaAssert(Malloc(&(cf_mbvh_gpu), mbvh_count * sizeof(MBVHNode_CacheFriendly)));
 	cudaAssert(Malloc(&(mbvh_triangle_indices_gpu), tri_count * sizeof(int)));
 	cudaAssert(Memcpy(cf_mbvh_gpu, cf_mbvh, mbvh_count * sizeof(MBVHNode_CacheFriendly), cudaMemcpyHostToDevice));

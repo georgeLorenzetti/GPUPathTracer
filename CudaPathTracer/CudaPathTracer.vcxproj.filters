@@ -73,6 +73,12 @@
     <ClInclude Include="dependancies\FreeImage\include\FreeImage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dependancies\glad\include\KHR\khrplatform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dependancies\glad\include\glad\glad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="glfw3.dll" />
@@ -80,7 +86,6 @@
     <None Include="FreeImage.dll" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\Kernel.cu" />
     <CudaCompile Include="src\Kernel_FPS.cu" />
   </ItemGroup>
   <ItemGroup>
