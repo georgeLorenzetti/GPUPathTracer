@@ -5,8 +5,8 @@ A Wavefront path tracer written in C++/CUDA.
 Current Features:
  - Next event estimation
  - Cosine weighted hemisphere sampling
-  - Lambertian & Purely Specular
- - (Quad) MBVH acceleration structure with 32 byte nodes.
+ - Lambertian & purely specular materials
+ - (Quad) MBVH acceleration structure with 32 byte nodes
  - Skybox
 
 To Do:
