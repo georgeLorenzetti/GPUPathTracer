@@ -1,6 +1,6 @@
 # GPUPathTracer
 
-A Wavefront path tracer written in C++/CUDA.
+A graphics renderer utilising the Wavefront Path Tracer algorithm written in C++/CUDA.
 
 Current Features:
  - Next event estimation
